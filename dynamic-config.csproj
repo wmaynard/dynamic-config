@@ -4,16 +4,17 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<RootNamespace>Rumble.Config</RootNamespace>
+		<RootNamespace>Rumble.Platform.Config</RootNamespace>
+		<AssemblyVersion>1.0.*</AssemblyVersion>
+		<Deterministic>false</Deterministic>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="platform-csharp-common" Version="1.0.126" />
+		<PackageReference Include="platform-csharp-common" Version="1.1.21" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Controllers" />
 	</ItemGroup>
 
 </Project>
