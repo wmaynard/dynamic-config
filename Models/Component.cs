@@ -7,7 +7,6 @@ using Rumble.Platform.Common.Utilities;
 
 namespace Rumble.Platform.Config.Models;
 
-[TypeDescriptionProvider(typeof(FooTypeDescriptionProvider))]
 public class Component : PlatformCollectionDocument
 {
 	public const string FRIENDLY_KEY_VERSION = "version";
