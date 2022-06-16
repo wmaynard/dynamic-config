@@ -13,26 +13,37 @@ namespace Rumble.Platform.Config.Controllers;
 public class TopController : PlatformController
 {
 #pragma warning disable
-	private readonly ComponentService _componentService;
 	private readonly ApiService _apiService;
+	private readonly SettingsService _settingsService;
 #pragma warning restore
 
 	[HttpPatch, Route("register"), RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult Register()
 	{
-		GenericData data = Require<GenericData>("component");
+		string name = Require<string>(PlatformEnvironment.KEY_COMPONENT);
+		string friendlyName = Require<string>(PlatformEnvironment.KEY_REGISTRATION_NAME);
+		RegisteredService service = Require<RegisteredService>("service");
+		service.LastUpdated = Timestamp.UnixTime;
 		
-		ControllerInfo[] info = data.Require<ControllerInfo[]>("controllers");
-		Component c = Require<Component>("component");
-		c.LastUpdated = Timestamp.UnixTime;
+		Settings settings = _settingsService.Exists(name)
+			? _settingsService.FindByName(name)
+			: _settingsService.Create(new Settings(name, friendlyName));
 
-		// _componentService.Update(c, createIfNotFound: true);
+		settings.Services.Add(service);
+		_settingsService.Update(settings);
 		
-		
+		// TODO: Ping other versions of service to see if they're still up; if not, remove them.
 		
 		return Ok(new
-		{
-			Component = c
+		{ 
+			Settings = settings
 		});
 	}
+
+	protected override GenericData AdditionalHealthData => new GenericData
+	{
+		{ "AllDC2", _dc2Service.AllValues },
+		{ "ProjectDC2", _dc2Service.ProjectValues },
+		{ "GlobalDC2", _dc2Service.GlobalValues }
+	};
 }
