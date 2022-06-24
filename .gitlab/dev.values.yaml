@@ -47,7 +47,7 @@ gitlab:
 service:
   enabled: true
   annotations: {}
-  name: mb-dev # 15 character limit..
+  name: dc-dev # 15 character limit..
   type: NodePort
   url: https://dev.nonprod.tower.cdrentertainment.com/
   additionalHosts:

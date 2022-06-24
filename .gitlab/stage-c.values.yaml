@@ -47,7 +47,7 @@ gitlab:
 service:
   enabled: true
   annotations: {}
-  name: mb-stage-c # 15 character limit..
+  name: dc-stage-c # 15 character limit..
   type: NodePort
   url: https://stage-c.nonprod.tower.cdrentertainment.com/
   additionalHosts:
