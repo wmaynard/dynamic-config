@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -27,7 +28,7 @@ public class Settings : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_VALUES)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public GenericData Values { get; init; }
+	public Dictionary<string, SettingsValue> Data { get; init; }
 	
 	[BsonElement(DB_KEY_ADMIN_TOKEN)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_TOKEN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -50,7 +51,7 @@ public class Settings : PlatformCollectionDocument
 	{
 		Name = name;
 		FriendlyName = friendlyName;
-		Values = new GenericData();
+		Data = new Dictionary<string, SettingsValue>();
 		Services = new List<RegisteredService>();
 		AdminToken = null;
 		ActiveClients = new List<DC2Service.DC2ClientInformation>();

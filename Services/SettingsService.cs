@@ -75,5 +75,6 @@ public class SettingsService : PlatformMongoService<Settings>
 		.ToList()
 		.SelectMany(list => list)
 		.Select(service => service.RootIngress) // TODO: This needs to be updated with the container url
+		.Where(value => !string.IsNullOrWhiteSpace(value))
 		.ToArray();
 }

@@ -31,8 +31,8 @@ public class SettingsController : PlatformController
 
 		foreach (Settings s in settings)
 		{
-			output[s.Name] = s.Values;
-			s.Values[Settings.FRIENDLY_KEY_ADMIN_TOKEN] ??= s.AdminToken;
+			output[s.Name] = s.Data;
+			s.Data[Settings.FRIENDLY_KEY_ADMIN_TOKEN] ??= new SettingsValue(s.AdminToken, "Admin token");
 		}
 
 		if (info != null)
@@ -61,16 +61,17 @@ public class SettingsController : PlatformController
 		string name = Optional<string>("name");
 		string key = Require<string>("key");
 		object value = Require("value");
+		string comment = Require<string>("comment");
 		
 		Settings settings = _settingsService.FindByName(name);
-		if (settings.Values[key] == value)	// Nothing really changed, exit without pinging all listeners
-			return Ok();
+		settings.Data[key] = new SettingsValue(value, comment);
 		
-		settings.Values[key] = value;
 		_settingsService.Update(settings);
 
 		string[] urls = _settingsService.GetUpdateListeners();
 		string adminToken = _dc2Service.ProjectValues.Optional<string>(Settings.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DC2Service accessor properties for admin token
+		
+		// Try to get all subscribers to refresh their variables
 		foreach (string url in urls)
 			await _apiService
 				.Request(PlatformEnvironment.Url(url + "/refresh"))
@@ -80,15 +81,13 @@ public class SettingsController : PlatformController
 					{
 						Url = response.RequestUrl
 					});
-					// TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this is other services are active, though.
+					// TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this if other services are active, though.
 				})
 				.AddAuthorization(adminToken)
 				.PatchAsync();
 		
 		// TODO: remove conditional after testing
-		return PlatformEnvironment.IsLocal
-			? Ok(settings.Values)
-			: Ok();
+		return Ok();
 	}
 
 	[HttpDelete, Route("value")]

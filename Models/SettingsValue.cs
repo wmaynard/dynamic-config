@@ -1,0 +1,25 @@
+using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Models;
+
+namespace Rumble.Platform.Config.Models;
+
+
+public class SettingsValue : PlatformDataModel
+{
+	[BsonElement("value"), BsonIgnoreIfNull]
+	[JsonInclude, JsonPropertyName("value")]
+	public object Value { get; init; }
+	
+	[BsonElement("comment"), BsonIgnoreIfNull]
+	[JsonInclude, JsonPropertyName("comment")]
+	public string Comment { get; init; }
+
+	
+	[BsonConstructor, JsonConstructor]
+	public SettingsValue(object value = null, string comment = null)
+	{
+		Value = value;
+		Comment = comment;
+	}
+}
