@@ -17,6 +17,7 @@ public class Settings : PlatformCollectionDocument
 	internal const string DB_KEY_FRIENDLY_NAME = "name";
 
 	public const string FRIENDLY_KEY_SERVICES = "registeredServices";
+	public const string FRIENDLY_KEY_ADMIN_VALUES = "commentedValues";
 	public const string FRIENDLY_KEY_VALUES = "values";
 	public const string FRIENDLY_KEY_ADMIN_TOKEN = "adminToken";
 	public const string FRIENDLY_KEY_NAME = "serviceName";
@@ -27,8 +28,16 @@ public class Settings : PlatformCollectionDocument
 	public List<RegisteredService> Services { get; init; }
 	
 	[BsonElement(DB_KEY_VALUES)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	[JsonIgnore]
 	public Dictionary<string, SettingsValue> Data { get; init; }
+
+	[BsonIgnore]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public GenericData AdminData => GenericData.FromDictionary(Data);
+
+	[BsonIgnore]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_VALUES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public GenericData ClientData => GenericData.FromDictionary(Data.ToDictionary(keySelector: pair => pair.Key, elementSelector: pair => pair.Value.Value));
 	
 	[BsonElement(DB_KEY_ADMIN_TOKEN)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_TOKEN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -44,7 +53,7 @@ public class Settings : PlatformCollectionDocument
 	
 	public List<DC2Service.DC2ClientInformation> ActiveClients { get; set; }
 
-	[JsonConstructor]
+	[JsonConstructor, BsonConstructor]
 	public Settings(){}
 
 	public Settings(string name, string friendlyName)

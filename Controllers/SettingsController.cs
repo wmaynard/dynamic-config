@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -16,7 +17,7 @@ public class SettingsController : PlatformController
 	private readonly SettingsService _settingsService;
 #pragma warning restore
 	
-	[HttpGet]
+	[HttpGet, RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult Get()
 	{
 		string name = Optional<string>("name");
@@ -31,31 +32,43 @@ public class SettingsController : PlatformController
 
 		foreach (Settings s in settings)
 		{
-			output[s.Name] = s.Data;
-			s.Data[Settings.FRIENDLY_KEY_ADMIN_TOKEN] ??= new SettingsValue(s.AdminToken, "Admin token");
+			output[s.Name] = s.ClientData;
+
+			if (s.Data.ContainsKey(Settings.FRIENDLY_KEY_ADMIN_TOKEN))
+				continue;
+		
+			string token = s.AdminToken ?? _settingsService.GenerateAdminToken(s.Name);
+			
+			s.Data[Settings.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
+			_settingsService.Update(s);
 		}
 
 		if (info != null)
 			_settingsService.LogActivity(info);
-		
+
 		return Ok(output);
 	}
 
-	[HttpPost, Route("new")]
+	[HttpPost, Route("new"), RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult Create()
 	{
 		string name = Require<string>("name");
 		string friendlyName = Require<string>("friendlyName");
 
 		if (_settingsService.Exists(name))
-			throw new PlatformException("Project already exists.", code: ErrorCode.NotSpecified); // TODO: Error code
+			return Problem("Project already exists.");
+			// throw new PlatformException("Project already exists.", code: ErrorCode.NotSpecified); // TODO: Error code
 
 		_settingsService.Create(new Settings(name, friendlyName));
+		Log.Info(Owner.Default, "New dynamic-config project created", data: new
+		{
+			Name = name
+		});
 		
 		return Ok();
 	}
 
-	[HttpPatch, Route("update")]
+	[HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN)]
 	public async Task<ActionResult> Update()
 	{
 		string name = Optional<string>("name");
@@ -90,7 +103,7 @@ public class SettingsController : PlatformController
 		return Ok();
 	}
 
-	[HttpDelete, Route("value")]
+	[HttpDelete, Route("value"), RequireAuth(AuthType.ADMIN_TOKEN)]
 	public ActionResult DeleteKey()
 	{
 		string name = Require<string>("name");

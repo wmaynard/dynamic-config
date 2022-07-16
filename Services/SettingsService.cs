@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -8,10 +9,13 @@ namespace Rumble.Platform.Config.Services;
 
 public class SettingsService : PlatformMongoService<Settings>
 {
-	public SettingsService() : base("settings")
+	private readonly ApiService _apiService;
+	public SettingsService(ApiService apiService) : base("settings")
 	{
 		if (!Exists(DC2Service.GLOBAL_SETTING_NAME))
 			Create(new Settings(DC2Service.GLOBAL_SETTING_NAME, DC2Service.GLOBAL_SETTING_FRIENDLY_NAME));
+
+		_apiService = apiService;
 	}
 
 	public void RemoveInactiveServices(long thresholdSeconds)
@@ -77,4 +81,33 @@ public class SettingsService : PlatformMongoService<Settings>
 		.Select(service => service.RootIngress) // TODO: This needs to be updated with the container url
 		.Where(value => !string.IsNullOrWhiteSpace(value))
 		.ToArray();
+
+	public string GenerateAdminToken(string serviceName) => PlatformEnvironment.IsLocal
+		? "(local token generation unavailable)"
+		: _apiService
+			.Request(PlatformEnvironment.Url("/secured/token/generate"))
+			.SetPayload(new GenericData
+			{
+				{ "aid", serviceName },
+				{ "screenname", $"{serviceName} ({PlatformEnvironment.Deployment})" },
+				{ "discriminator", 10_000 },
+				{ "origin", $"{PlatformEnvironment.Name} ({PlatformEnvironment.Deployment})" },
+				{ "email", "william.maynard@rumbleentertainment.com" },
+				{ "days", 5_000 },
+				{ "key", PlatformEnvironment.RumbleSecret }
+			})
+			.OnSuccess((_, _) =>
+			{
+				Log.Local(Owner.Will, "Admin token successfully generated.");
+			})
+			.OnFailure((_, response) =>
+			{
+				Log.Error(Owner.Will, "Admin token failed to generate.", data: new
+				{
+					Response = response
+				});
+			}).Post()
+			.AsGenericData
+			?.Optional<GenericData>("authorization")
+			?.Optional<string>("token");
 }
