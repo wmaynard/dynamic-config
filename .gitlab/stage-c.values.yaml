@@ -56,8 +56,7 @@ service:
   internalPort: 80
 ingress:
   enabled: true
-  paths: 
-    - "/config"
+  path: "/config"
   tls:
     enabled: false
     acme: false
