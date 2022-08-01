@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -62,7 +63,7 @@ public class SettingsService : PlatformMongoService<Settings>
 	public Settings FindByName(string name) => _collection
 		.Find(filter: settings => settings.Name == name)
 		.FirstOrDefault()
-		??	throw new PlatformException("Setting does not exist.", code: ErrorCode.NotSpecified); // TODO: Error code
+		??	throw new PlatformException("Setting does not exist.", code: ErrorCode.MongoRecordNotFound); // TODO: Error code
 
 	public bool Exists(string name) => _collection
 		.CountDocuments(settings => settings.Name == name) > 0;

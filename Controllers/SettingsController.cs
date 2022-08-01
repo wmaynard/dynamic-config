@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -56,8 +57,8 @@ public class SettingsController : PlatformController
 		string friendlyName = Require<string>("friendlyName");
 
 		if (_settingsService.Exists(name))
-			return Problem("Project already exists.");
-			// throw new PlatformException("Project already exists.", code: ErrorCode.NotSpecified); // TODO: Error code
+			return Ok("Section already exists", ErrorCode.Unnecessary);
+			// throw new PlatformException("Project already exists.", code: ErrorCode.Unnecessary);
 
 		_settingsService.Create(new Settings(name, friendlyName));
 		Log.Info(Owner.Default, "New dynamic-config project created", data: new

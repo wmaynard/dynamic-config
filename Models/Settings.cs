@@ -41,7 +41,7 @@ public class Settings : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_ADMIN_TOKEN)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ADMIN_TOKEN), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public string? AdminToken { get; init; }
+	public string AdminToken { get; init; }
 	
 	[BsonElement(DB_KEY_NAME)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_NAME)]
