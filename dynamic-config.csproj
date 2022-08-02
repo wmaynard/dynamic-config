@@ -10,7 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="platform-csharp-common" Version="1.1.42" />
+		<PackageReference Include="platform-csharp-common" Version="1.1.44" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
 	</ItemGroup>
 

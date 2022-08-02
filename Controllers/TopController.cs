@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
-using Rumble.Platform.Config.Models;
 using Rumble.Platform.Config.Services;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -16,7 +16,7 @@ public class TopController : PlatformController
 {
 #pragma warning disable
 	private readonly ApiService _apiService;
-	private readonly SettingsService _settingsService;
+	private readonly SectionService _sectionService;
 #pragma warning restore
 
 	[HttpPatch, Route("register"), RequireAuth(AuthType.RUMBLE_KEYS)]
@@ -27,18 +27,18 @@ public class TopController : PlatformController
 		RegisteredService service = Require<RegisteredService>("service");
 		service.LastUpdated = Timestamp.UnixTime;
 		
-		Settings settings = _settingsService.Exists(name)
-			? _settingsService.FindByName(name)
-			: _settingsService.Create(new Settings(name, friendlyName));
+		Section dynamicConfigSection = _sectionService.Exists(name)
+			? _sectionService.FindByName(name)
+			: _sectionService.Create(new Section(name, friendlyName));
 
-		settings.Services.Add(service);
-		_settingsService.Update(settings);
+		dynamicConfigSection.Services.Add(service);
+		_sectionService.Update(dynamicConfigSection);
 		
 		// TODO: Ping other versions of service to see if they're still up; if not, remove them.
 
 		return Ok(new
 		{ 
-			Settings = settings
+			Settings = dynamicConfigSection
 		});
 	}
 

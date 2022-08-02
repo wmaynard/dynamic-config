@@ -3,10 +3,10 @@ using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Config.Models;
 using Rumble.Platform.Config.Services;
 
 namespace Rumble.Platform.Config.Controllers;
@@ -15,8 +15,17 @@ namespace Rumble.Platform.Config.Controllers;
 public class SettingsController : PlatformController
 {
 #pragma warning disable
-	private readonly SettingsService _settingsService;
+	private readonly SectionService _sectionService;
 #pragma warning restore
+
+	[HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
+	public ActionResult GetPortalData()
+	{
+		return Ok(new GenericData
+		{
+			{ DC2Service.API_KEY_SECTIONS, _sectionService.List() }
+		});
+	}
 	
 	[HttpGet, RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult Get()
@@ -27,25 +36,25 @@ public class SettingsController : PlatformController
 		
 		GenericData output = new GenericData();
 
-		Settings[] settings = name == null
-			? _settingsService.List().ToArray()
-			: new[] { _settingsService.FindByName(name) };
+		Section[] settings = name == null
+			? _sectionService.List().ToArray()
+			: new[] { _sectionService.FindByName(name) };
 
-		foreach (Settings s in settings)
+		foreach (Section s in settings)
 		{
 			output[s.Name] = s.ClientData;
-
-			if (s.Data.ContainsKey(Settings.FRIENDLY_KEY_ADMIN_TOKEN))
+			
+			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN))
 				continue;
 		
-			string token = s.AdminToken ?? _settingsService.GenerateAdminToken(s.Name);
+			string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);
 			
-			s.Data[Settings.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
-			_settingsService.Update(s);
+			s.Data[Section.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
+			_sectionService.Update(s);
 		}
 
 		if (info != null)
-			_settingsService.LogActivity(info);
+			_sectionService.LogActivity(info);
 
 		return Ok(output);
 	}
@@ -56,11 +65,11 @@ public class SettingsController : PlatformController
 		string name = Require<string>("name");
 		string friendlyName = Require<string>("friendlyName");
 
-		if (_settingsService.Exists(name))
+		if (_sectionService.Exists(name))
 			return Ok("Section already exists", ErrorCode.Unnecessary);
 			// throw new PlatformException("Project already exists.", code: ErrorCode.Unnecessary);
 
-		_settingsService.Create(new Settings(name, friendlyName));
+		_sectionService.Create(new Section(name, friendlyName));
 		Log.Info(Owner.Default, "New dynamic-config project created", data: new
 		{
 			Name = name
@@ -77,13 +86,13 @@ public class SettingsController : PlatformController
 		object value = Require("value");
 		string comment = Require<string>("comment");
 		
-		Settings settings = _settingsService.FindByName(name);
-		settings.Data[key] = new SettingsValue(value, comment);
+		Section dynamicConfigSection = _sectionService.FindByName(name);
+		dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
 		
-		_settingsService.Update(settings);
+		_sectionService.Update(dynamicConfigSection);
 
-		string[] urls = _settingsService.GetUpdateListeners();
-		string adminToken = _dc2Service.ProjectValues.Optional<string>(Settings.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DC2Service accessor properties for admin token
+		string[] urls = _sectionService.GetUpdateListeners();
+		string adminToken = _dc2Service.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DC2Service accessor properties for admin token
 		
 		// Try to get all subscribers to refresh their variables
 		foreach (string url in urls)
@@ -110,7 +119,7 @@ public class SettingsController : PlatformController
 		string name = Require<string>("name");
 		string key = Require<string>("key");
 
-		string message = _settingsService.RemoveValue(name, key)
+		string message = _sectionService.RemoveValue(name, key)
 			? $"'{name}.{key}' removed."
 			: "No records were modified.";
 
