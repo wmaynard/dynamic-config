@@ -110,9 +110,9 @@ resources:
 ## Configure PodDisrptionBudget
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 #
-# podDisruptionBudget:
-#   enabled: true
-#   minAvailable: 1
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
 
 ## Configure NetworkPolicy
 ## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
