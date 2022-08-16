@@ -55,16 +55,15 @@ service:
   externalPort: 5000
   internalPort: 80
 ingress:
+  className: nginx
   enabled: true
   path: "/config"
-
   tls:
     enabled: false
     acme: false
     secretName: "dynamic-config-service-stage-a"
     useDefaultSecret: false
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/client-body-buffer-size: 1m
   modSecurity:
     enabled: false
