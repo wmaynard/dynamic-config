@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
@@ -85,10 +86,13 @@ public class SettingsController : PlatformController
 		string key = Require<string>("key");
 		object value = Require("value");
 		string comment = Require<string>("comment");
+
+		if (value is JsonElement)
+			throw new PlatformException("'value' cannot be a JSON object.  It must be a primitive type.", code: ErrorCode.InvalidDataType);
 		
 		Section dynamicConfigSection = _sectionService.FindByName(name);
 		dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
-		
+
 		_sectionService.Update(dynamicConfigSection);
 
 		string[] urls = _sectionService.GetUpdateListeners();
