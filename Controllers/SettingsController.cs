@@ -17,6 +17,7 @@ public class SettingsController : PlatformController
 {
 #pragma warning disable
 	private readonly SectionService _sectionService;
+	private readonly NotificationService _notificationService;
 #pragma warning restore
 
 	[HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
@@ -98,20 +99,21 @@ public class SettingsController : PlatformController
 		string[] urls = _sectionService.GetUpdateListeners();
 		string adminToken = _dc2Service.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DC2Service accessor properties for admin token
 		
+		_notificationService.QueueNotifications();
 		// Try to get all subscribers to refresh their variables
-		foreach (string url in urls)
-			await _apiService
-				.Request(PlatformEnvironment.Url(url + "/refresh"))
-				.OnFailure((_, response) =>
-				{
-					Log.Info(Owner.Will, $"Couldn't refresh dynamic config.", data: new
-					{
-						Url = response.RequestUrl
-					});
-					// TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this if other services are active, though.
-				})
-				.AddAuthorization(adminToken)
-				.PatchAsync();
+		// foreach (string url in urls)
+		// 	await _apiService
+		// 		.Request(PlatformEnvironment.Url(url + "/refresh"))
+		// 		.OnFailure((_, response) =>
+		// 		{
+		// 			Log.Info(Owner.Will, $"Couldn't refresh dynamic config.", data: new
+		// 			{
+		// 				Url = response.RequestUrl
+		// 			});
+		// 			// TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this if other services are active, though.
+		// 		})
+		// 		.AddAuthorization(adminToken)
+		// 		.PatchAsync();
 		
 		// TODO: remove conditional after testing
 		return Ok();
