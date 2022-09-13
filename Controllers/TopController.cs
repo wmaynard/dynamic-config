@@ -42,6 +42,21 @@ public class TopController : PlatformController
 		});
 	}
 
+	[HttpPost, Route("test")]
+	public ActionResult Forward()
+	{
+		string url = Require<string>("url");
+
+		_apiService
+			.Request(url)
+			.AddAuthorization(Token.Authorization)
+			.AddRumbleKeys()
+			.SetPayload(Body)
+			.Get(out GenericData response);
+
+		return Ok(response);
+	}
+
 	protected override GenericData AdditionalHealthData => new GenericData
 	{
 		{ "AllDC2", _dc2Service.AllValues },
