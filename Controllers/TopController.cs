@@ -8,6 +8,7 @@ using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Config.Controllers;
 
@@ -52,12 +53,12 @@ public class TopController : PlatformController
 			.AddAuthorization(Token.Authorization)
 			.AddRumbleKeys()
 			.SetPayload(Body)
-			.Get(out GenericData response);
+			.Get(out RumbleJson response);
 
 		return Ok(response);
 	}
 
-	protected override GenericData AdditionalHealthData => new GenericData
+	protected override RumbleJson AdditionalHealthData => new RumbleJson
 	{
 		{ "AllDC2", _dc2Service.AllValues },
 		{ "ProjectDC2", _dc2Service.ProjectValues },

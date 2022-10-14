@@ -9,6 +9,7 @@ using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Config.Services;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Config.Controllers;
 
@@ -23,7 +24,7 @@ public class SettingsController : PlatformController
 	[HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult GetPortalData()
 	{
-		return Ok(new GenericData
+		return Ok(new RumbleJson
 		{
 			{ DC2Service.API_KEY_SECTIONS, _sectionService.List() }
 		});
@@ -36,7 +37,7 @@ public class SettingsController : PlatformController
 
 		DC2Service.DC2ClientInformation info = Optional<DC2Service.DC2ClientInformation>("client");
 		
-		GenericData output = new GenericData();
+		RumbleJson output = new RumbleJson();
 
 		Section[] settings = name == null
 			? _sectionService.List().ToArray()

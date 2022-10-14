@@ -5,6 +5,7 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Config.Services;
 
@@ -87,7 +88,7 @@ public class SectionService : PlatformMongoService<Section>
 		? "(local token generation unavailable)"
 		: _apiService
 			.Request(PlatformEnvironment.Url("/secured/token/generate"))
-			.SetPayload(new GenericData
+			.SetPayload(new RumbleJson
 			{
 				{ "aid", serviceName },
 				{ "screenname", $"{serviceName} ({PlatformEnvironment.Deployment})" },
@@ -108,7 +109,7 @@ public class SectionService : PlatformMongoService<Section>
 					Response = response
 				});
 			}).Post()
-			.AsGenericData
-			?.Optional<GenericData>("authorization")
+			.AsRumbleJson
+			?.Optional<RumbleJson>("authorization")
 			?.Optional<string>("token");
 }

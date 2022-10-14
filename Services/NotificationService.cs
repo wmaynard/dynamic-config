@@ -3,6 +3,7 @@ using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.Config.Services;
 
@@ -18,6 +19,10 @@ public class NotificationService : QueueService<NotificationService.Data>
         _apiService = apiService;
         _dc2Service = dc2Service;
         _sectionService = sectionService;
+    }
+
+    protected override void OnTasksCompleted(Data[] data)
+    {
     }
 
     protected override void PrimaryNodeWork()
