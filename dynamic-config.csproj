@@ -7,6 +7,8 @@
 		<RootNamespace>Rumble.Platform.Config</RootNamespace>
 		<AssemblyVersion>1.0.*</AssemblyVersion>
 		<Deterministic>false</Deterministic>
+		<Configurations>Debug;Release;Local</Configurations>
+		<Platforms>AnyCPU</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -16,7 +16,12 @@ public class SectionService : PlatformMongoService<Section>
 	{
 		if (!Exists(DC2Service.GLOBAL_SETTING_NAME))
 			Create(new Section(DC2Service.GLOBAL_SETTING_NAME, DC2Service.GLOBAL_SETTING_FRIENDLY_NAME));
-
+		if (!Exists(DC2Service.COMMON_SETTING_NAME))
+			Create(new Section(DC2Service.COMMON_SETTING_NAME, DC2Service.COMMON_SETTING_FRIENDLY_NAME));
+		if (!Exists(DC2Service.CLIENT_SETTING_NAME))
+			Create(new Section(DC2Service.CLIENT_SETTING_NAME, DC2Service.CLIENT_SETTING_FRIENDLY_NAME));
+		if (!Exists(DC2Service.SERVER_SETTING_NAME))
+			Create(new Section(DC2Service.SERVER_SETTING_NAME, DC2Service.SERVER_SETTING_FRIENDLY_NAME));
 		_apiService = apiService;
 	}
 
@@ -69,11 +74,21 @@ public class SectionService : PlatformMongoService<Section>
 	public bool Exists(string name) => _collection
 		.CountDocuments(settings => settings.Name == name) > 0;
 
-	public bool RemoveValue(string name, string key) => _collection
-		.UpdateOne(
-			filter: settings => settings.Name == name,
-			update: Builders<Section>.Update.Unset($"{Section.DB_KEY_VALUES}.{key}")
-		).ModifiedCount > 0;
+	public bool RemoveValue(string name, string key)
+	{
+		// Tried to do this with a single Mongo query; couldn't get it to cooperate within two hours, so now doing it in
+		// 3 stages of Find -> Update locally -> Update mongo
+		Section section = _collection
+			.Find(Builders<Section>.Filter.Eq(section => section.Name, name))
+			.FirstOrDefault()
+			?? throw new PlatformException("Section not found.");
+
+		if (!section.Data.Remove(key))
+			throw new PlatformException("No values modified.");
+		
+		Update(section);
+		return true;
+	}
 
 	public string[] GetUpdateListeners() => _collection
 		.Find(filter: settings => true)
