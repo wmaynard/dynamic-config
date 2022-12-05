@@ -10,14 +10,14 @@ namespace Rumble.Platform.Config.Services;
 public class NotificationService : QueueService<NotificationService.Data>
 {
     private readonly ApiService _apiService;
-    private readonly DC2Service _dc2Service;
+    private readonly DynamicConfig _dynamicConfig;
     private readonly SectionService _sectionService;
-    private string AdminToken => _dc2Service?.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN);
+    private string AdminToken => _dynamicConfig?.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN);
 
-    public NotificationService(ApiService apiService, DC2Service dc2Service, SectionService sectionService) : base("notifications", intervalMs: 5_000, primaryNodeTaskCount: 50, secondaryNodeTaskCount: 0)
+    public NotificationService(ApiService apiService, DynamicConfig dynamicConfig, SectionService sectionService) : base("notifications", intervalMs: 5_000, primaryNodeTaskCount: 50, secondaryNodeTaskCount: 0)
     {
         _apiService = apiService;
-        _dc2Service = dc2Service;
+        _dynamicConfig = dynamicConfig;
         _sectionService = sectionService;
     }
 

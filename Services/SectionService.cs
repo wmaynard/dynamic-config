@@ -14,14 +14,14 @@ public class SectionService : PlatformMongoService<Section>
 	private readonly ApiService _apiService;
 	public SectionService(ApiService apiService) : base("settings")
 	{
-		if (!Exists(DC2Service.GLOBAL_SETTING_NAME))
-			Create(new Section(DC2Service.GLOBAL_SETTING_NAME, DC2Service.GLOBAL_SETTING_FRIENDLY_NAME));
-		if (!Exists(DC2Service.COMMON_SETTING_NAME))
-			Create(new Section(DC2Service.COMMON_SETTING_NAME, DC2Service.COMMON_SETTING_FRIENDLY_NAME));
-		if (!Exists(DC2Service.CLIENT_SETTING_NAME))
-			Create(new Section(DC2Service.CLIENT_SETTING_NAME, DC2Service.CLIENT_SETTING_FRIENDLY_NAME));
-		if (!Exists(DC2Service.SERVER_SETTING_NAME))
-			Create(new Section(DC2Service.SERVER_SETTING_NAME, DC2Service.SERVER_SETTING_FRIENDLY_NAME));
+		if (!Exists(DynamicConfig.GLOBAL_SETTING_NAME))
+			Create(new Section(DynamicConfig.GLOBAL_SETTING_NAME, DynamicConfig.GLOBAL_SETTING_FRIENDLY_NAME));
+		if (!Exists(DynamicConfig.COMMON_SETTING_NAME))
+			Create(new Section(DynamicConfig.COMMON_SETTING_NAME, DynamicConfig.COMMON_SETTING_FRIENDLY_NAME));
+		if (!Exists(DynamicConfig.CLIENT_SETTING_NAME))
+			Create(new Section(DynamicConfig.CLIENT_SETTING_NAME, DynamicConfig.CLIENT_SETTING_FRIENDLY_NAME));
+		if (!Exists(DynamicConfig.SERVER_SETTING_NAME))
+			Create(new Section(DynamicConfig.SERVER_SETTING_NAME, DynamicConfig.SERVER_SETTING_FRIENDLY_NAME));
 		_apiService = apiService;
 	}
 
@@ -53,7 +53,7 @@ public class SectionService : PlatformMongoService<Section>
 		}
 	}
 
-	public void LogActivity(DC2Service.DC2ClientInformation info)
+	public void LogActivity(DynamicConfig.DC2ClientInformation info)
 	{
 		Section dynamicConfigSection = FindByName(info.ServiceName);
 		

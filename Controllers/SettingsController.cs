@@ -26,7 +26,7 @@ public class SettingsController : PlatformController
 	{
 		return Ok(new RumbleJson
 		{
-			{ DC2Service.API_KEY_SECTIONS, _sectionService.List() }
+			{ DynamicConfig.API_KEY_SECTIONS, _sectionService.List() }
 		});
 	}
 	
@@ -35,7 +35,7 @@ public class SettingsController : PlatformController
 	{
 		string name = Optional<string>("name");
 
-		DC2Service.DC2ClientInformation info = Optional<DC2Service.DC2ClientInformation>("client");
+		DynamicConfig.DC2ClientInformation info = Optional<DynamicConfig.DC2ClientInformation>("client");
 		
 		RumbleJson output = new RumbleJson();
 
@@ -98,7 +98,7 @@ public class SettingsController : PlatformController
 		_sectionService.Update(dynamicConfigSection);
 
 		string[] urls = _sectionService.GetUpdateListeners();
-		string adminToken = _dc2Service.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DC2Service accessor properties for admin token
+		string adminToken = DynamicConfig.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DynamicConfig accessor properties for admin token
 		
 		_notificationService.QueueNotifications();
 		// Try to get all subscribers to refresh their variables

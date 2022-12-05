@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Config.Services;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Models.Config;
@@ -15,10 +16,87 @@ namespace Rumble.Platform.Config.Controllers;
 [Route("config")] //  RequireAuth(AuthType.RUMBLE_KEYS)]
 public class TopController : PlatformController
 {
+	public const string SECRET = "1a8ae7a7-228c-4c1e-b5d1-3e41941f6910";
+	private const string KEY_SECRET = "key";
+	
+	
 #pragma warning disable
 	private readonly ApiService _apiService;
 	private readonly SectionService _sectionService;
 #pragma warning restore
+	
+	
+	[HttpPost, Route("import"), NoAuth]
+	public ActionResult MergeEnvironment()
+	{
+		string secret = Require<string>(KEY_SECRET);
+		Section[] fromRequest = Require<Section[]>("sections");
+		int deployment = Require<int>("deployment");
+		
+		if (secret != SECRET)
+			throw new PlatformException("Unauthorized.");
+
+		int sections = 0;
+		int values = 0;
+		Section[] all = _sectionService.List().ToArray();
+		foreach (Section incoming in fromRequest.Where(req => req != null))
+		{
+			Section local = all.FirstOrDefault(a => a.Name == incoming.Name);
+			if (local == null)
+			{
+				incoming.ResetId();
+				_sectionService.Create(incoming);
+				continue;
+			}
+
+			local.Data ??= new Dictionary<string, SettingsValue>();
+
+			bool changed = false;
+			foreach (KeyValuePair<string, SettingsValue> pair in incoming.Data)
+			{
+				if (local.Data.ContainsKey(pair.Key) && local.Data[pair.Key]?.Value != null)
+					continue;
+				
+				SettingsValue value = pair.Value;
+				value.Comment = $"[Merged from {deployment}] {value.Comment}";
+
+				local.Data[pair.Key] = value;
+				changed = true;
+				values++;
+			}
+
+			if (!changed)
+				continue;
+
+			sections++;
+			_sectionService.Update(local);
+		}
+
+		return Ok(new RumbleJson
+		{
+			{ "sectionsAffected", sections },
+			{ "valuesAdded", values }
+		});
+	}
+
+	[HttpPost, Route("export"), RequireAuth(AuthType.ADMIN_TOKEN)]
+	public ActionResult Export()
+	{
+		string url = Require<string>("envUrl");
+
+		_apiService
+			.Request(PlatformEnvironment.Url(url, "/config/import"))
+			.SetPayload(new RumbleJson
+			{
+				{ KEY_SECRET, SECRET },
+				{ "deployment", PlatformEnvironment.Deployment },
+				{ "sections", _sectionService.List() }
+			})
+			.OnFailure(response => Log.Local(Owner.Will, "Failed to merge dynamic config environments."))
+			.Post(out RumbleJson json, out int code);
+		
+		return Ok(json);
+	}
 
 	[HttpPatch, Route("register"), RequireAuth(AuthType.RUMBLE_KEYS)]
 	public ActionResult Register()
@@ -60,8 +138,8 @@ public class TopController : PlatformController
 
 	protected override RumbleJson AdditionalHealthData => new RumbleJson
 	{
-		{ "AllDC2", _dc2Service.AllValues },
-		{ "ProjectDC2", _dc2Service.ProjectValues },
-		{ "GlobalDC2", _dc2Service.GlobalValues }
+		{ "AllDC2", DynamicConfig.AllValues },
+		{ "ProjectDC2", DynamicConfig.ProjectValues },
+		{ "GlobalDC2", DynamicConfig.GlobalValues }
 	};
 }
