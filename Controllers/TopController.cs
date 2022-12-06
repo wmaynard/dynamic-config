@@ -62,6 +62,10 @@ public class TopController : PlatformController
 			if (local == null)
 			{
 				incoming.ResetId();
+				
+				foreach (KeyValuePair<string, SettingsValue> pair in incoming.Data)
+					pair.Value.Comment = $"[Imported from {deployment}] {pair.Value.Comment}";
+				
 				_sectionService.Create(incoming);
 				sections++;
 				values += incoming.Data.Count;
@@ -78,7 +82,7 @@ public class TopController : PlatformController
 					continue;
 				
 				SettingsValue value = pair.Value;
-				value.Comment = $"[Merged from {deployment}] {value.Comment}";
+				value.Comment = $"[Imported from {deployment}] {value.Comment}";
 
 				local.Data[pair.Key] = value;
 				changed = true;
