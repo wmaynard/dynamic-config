@@ -86,7 +86,7 @@ public class SettingsController : PlatformController
 	{
 		string name = Optional<string>("name");
 		string key = Require<string>("key");
-		object value = Require("value");
+		string value = Require<string>("value");
 		string comment = Require<string>("comment");
 
 		if (value is JsonElement)

@@ -127,4 +127,14 @@ public class SectionService : PlatformMongoService<Section>
 			.AsRumbleJson
 			?.Optional<RumbleJson>("authorization")
 			?.Optional<string>("token");
+
+	public string[] GetAllIds() => _collection
+		.Find(_ => true)
+		.Project(Builders<Section>.Projection.Expression(section => section.Id))
+		.ToList()
+		.ToArray();
+
+	public long DeleteAllExcept(string id) => _collection
+		.DeleteMany(section => section.Id != id)
+		.DeletedCount;
 }

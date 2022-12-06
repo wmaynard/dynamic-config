@@ -35,9 +35,26 @@ public class TopController : PlatformController
 		
 		if (secret != SECRET)
 			throw new PlatformException("Unauthorized.");
-
+		
 		int sections = 0;
 		int values = 0;
+		// string[] ids = _sectionService.GetAllIds();
+		
+		
+		// _sectionService.DeleteAllExcept(ids.Last());
+		//
+		// foreach (string id in ids)
+		// {
+		// 	try
+		// 	{
+		// 		Section foo = _sectionService.FindOne(section => section.Id == id);
+		// 	}
+		// 	catch (FormatException e)
+		// 	{
+		// 		Log.Local(Owner.Will, $"ID {id} is borked.", emphasis: Log.LogType.ERROR);
+		// 	}
+		// }
+		
 		Section[] all = _sectionService.List().ToArray();
 		foreach (Section incoming in fromRequest.Where(req => req != null))
 		{
@@ -92,7 +109,10 @@ public class TopController : PlatformController
 				{ "deployment", PlatformEnvironment.Deployment },
 				{ "sections", _sectionService.List() }
 			})
-			.OnFailure(response => Log.Local(Owner.Will, "Failed to merge dynamic config environments."))
+			.OnFailure(response =>
+			{
+				Log.Local(Owner.Will, "Failed to merge dynamic config environments.");
+			})
 			.Post(out RumbleJson json, out int code);
 		
 		return Ok(json);
