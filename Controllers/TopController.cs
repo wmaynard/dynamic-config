@@ -63,6 +63,9 @@ public class TopController : PlatformController
 			{
 				incoming.ResetId();
 				_sectionService.Create(incoming);
+				sections++;
+				values += incoming.Data.Count;
+				
 				continue;
 			}
 
