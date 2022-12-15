@@ -135,4 +135,23 @@ public class SettingsController : PlatformController
 			Message = message
 		});
 	}
+
+	[HttpGet, Route("validate"), RequireAuth(AuthType.RUMBLE_KEYS)]
+	public ActionResult ValidateSections()
+	{
+		RumbleJson errors = new RumbleJson();
+		foreach (string id in _sectionService.GetAllIds())
+			try
+			{
+				_sectionService.Get(id);
+			}
+			catch (Exception e)
+			{
+				errors[id] = e.Message;
+			}
+
+		return errors.Any()
+			? Problem(errors)
+			: Ok();
+	}
 }
