@@ -4,6 +4,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models.Config;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -47,7 +48,7 @@ public class SettingsController : PlatformController
 		{
 			output[s.Name] = s.ClientData;
 			
-			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN))
+			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name != Audience.GameClient.GetDisplayName())
 				continue;
 		
 			string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);

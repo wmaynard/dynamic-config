@@ -54,6 +54,24 @@ public class SectionService : PlatformMongoService<Section>
 		}
 	}
 
+	public void Validate()
+	{
+		List<string> names = _collection.Find(_ => true).Project(Builders<Section>.Projection.Expression(section => section.Name)).ToList();
+
+		foreach (string name in names)
+		{
+			Log.Local(Owner.Will, $"Testing '{name}'");
+			try
+			{
+				FindByName(name);
+			}
+			catch (Exception e)
+			{
+				Log.Local(Owner.Will, $"Failed to load {name}! ({e.Message}");
+			}
+		}
+	}
+
 	public void LogActivity(DynamicConfig.DC2ClientInformation info)
 	{
 		Section dynamicConfigSection = FindByName(info.ServiceName);
@@ -107,6 +125,7 @@ public class SectionService : PlatformMongoService<Section>
 			.SetPayload(new RumbleJson
 			{
 				{ "aid", serviceName },
+				{ "accountId", serviceName },
 				{ "screenname", $"{serviceName} ({PlatformEnvironment.Deployment})" },
 				{ "discriminator", 10_000 },
 				{ "origin", $"{PlatformEnvironment.Name} ({PlatformEnvironment.Deployment})" },
@@ -114,17 +133,12 @@ public class SectionService : PlatformMongoService<Section>
 				{ "days", 5_000 },
 				{ "key", PlatformEnvironment.RumbleSecret }
 			})
-			.OnSuccess((_, _) =>
+			.OnSuccess(_ => Log.Local(Owner.Will, "Admin token successfully generated."))
+			.OnFailure(response => Log.Error(Owner.Will, "Admin token failed to generate.", data: new
 			{
-				Log.Local(Owner.Will, "Admin token successfully generated.");
-			})
-			.OnFailure((_, response) =>
-			{
-				Log.Error(Owner.Will, "Admin token failed to generate.", data: new
-				{
-					Response = response
-				});
-			}).Post()
+				Response = response
+			}))
+			.Post()
 			.AsRumbleJson
 			?.Optional<RumbleJson>("authorization")
 			?.Optional<string>("token");
