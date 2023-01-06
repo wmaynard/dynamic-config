@@ -48,7 +48,7 @@ public class SettingsController : PlatformController
 		{
 			output[s.Name] = s.ClientData;
 			
-			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name != Audience.GameClient.GetDisplayName())
+			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name == Audience.GameClient.GetDisplayName())
 				continue;
 		
 			string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);
