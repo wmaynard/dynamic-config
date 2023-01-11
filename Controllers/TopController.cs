@@ -114,7 +114,7 @@ public class TopController : PlatformController
 			{
 				{ KEY_SECRET, SECRET },
 				{ "deployment", PlatformEnvironment.Deployment },
-				{ "sections", _sectionService.List() }
+				{ "sections", _sectionService.List().Select(section => section.PrepareForExport()) }
 			})
 			.OnFailure(response =>
 			{
