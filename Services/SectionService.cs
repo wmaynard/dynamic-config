@@ -72,6 +72,24 @@ public class SectionService : PlatformMongoService<Section>
 		}
 	}
 
+	/// <summary>
+	/// Scrub the ActiveClients and Services from the model when returning all values to clients - these are very substantial
+	/// data points to deserialize which causes significant slowdown.  Using the projection means they don't even load. 
+	/// </summary>
+	/// <returns>An array of all sections of DynamicConfig.</returns>
+	public override IEnumerable<Section> List() => _collection.Find(_ => true)
+		.Project(Builders<Section>.Projection.Expression(section => new Section(section.Id)
+		{
+			ActiveClients = new List<DynamicConfig.DC2ClientInformation>(),
+			AdminToken = section.AdminToken,
+			Data = section.Data,
+			FriendlyName = section.FriendlyName,
+			Name = section.Name,
+			Services = { }
+		}))
+		.ToList()
+		.ToArray();
+
 	public void LogActivity(DynamicConfig.DC2ClientInformation info)
 	{
 		Section dynamicConfigSection = FindByName(info.ServiceName);
