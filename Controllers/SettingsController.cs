@@ -31,7 +31,7 @@ public class SettingsController : PlatformController
 		});
 	}
 	
-	[HttpGet, RequireAuth(AuthType.RUMBLE_KEYS)]
+	[HttpGet, RequireAuth(AuthType.RUMBLE_KEYS), HealthMonitor(weight: 1)]
 	public ActionResult Get()
 	{
 		string name = Optional<string>("name");
@@ -82,7 +82,7 @@ public class SettingsController : PlatformController
 		return Ok();
 	}
 
-	[HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN)]
+	[HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN), HealthMonitor(weight: 5)]
 	public async Task<ActionResult> Update()
 	{
 		string name = Optional<string>("name");
