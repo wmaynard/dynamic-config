@@ -137,11 +137,17 @@ public class TopController : PlatformController
 		string friendlyName = Require<string>(PlatformEnvironment.KEY_REGISTRATION_NAME);
 		RegisteredService service = Require<RegisteredService>("service");
 		service.LastUpdated = Timestamp.UnixTime;
-		
+
+		if (string.IsNullOrWhiteSpace(name))
+			throw new PlatformException($"{PlatformEnvironment.KEY_COMPONENT} not provided.");
+		if (string.IsNullOrWhiteSpace(friendlyName))
+			throw new PlatformException($"{PlatformEnvironment.KEY_REGISTRATION_NAME} not provided.");
+
 		Section dynamicConfigSection = _sectionService.Exists(name)
-			? _sectionService.FindByName(name)
+			? _sectionService.FindByName(name) ?? _sectionService.Create(new Section(name, friendlyName))
 			: _sectionService.Create(new Section(name, friendlyName));
 
+		dynamicConfigSection.Services ??= new List<RegisteredService>();
 		dynamicConfigSection.Services.Add(service);
 		_sectionService.Update(dynamicConfigSection);
 		
