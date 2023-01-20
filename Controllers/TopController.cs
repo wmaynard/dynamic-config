@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using RCL.Logging;
 using Rumble.Platform.Config.Services;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Models.Config;
@@ -107,22 +109,25 @@ public class TopController : PlatformController
 	public ActionResult Export()
 	{
 		string url = Require<string>("envUrl");
-
+		
+		RumbleJson payload = new RumbleJson
+		{
+			{ KEY_SECRET, SECRET },
+			{ "deployment", PlatformEnvironment.Deployment },
+			{ "sections", _sectionService.List().Select(section => section.PrepareForExport()) }
+		};
 		_apiService
 			.Request(PlatformEnvironment.Url(url, "/config/import"))
-			.SetPayload(new RumbleJson
-			{
-				{ KEY_SECRET, SECRET },
-				{ "deployment", PlatformEnvironment.Deployment },
-				{ "sections", _sectionService.List().Select(section => section.PrepareForExport()) }
-			})
+			.SetPayload(payload)
 			.OnFailure(response =>
 			{
 				Log.Local(Owner.Will, "Failed to merge dynamic config environments.");
 			})
 			.Post(out RumbleJson json, out int code);
-		
-		return Ok(json);
+
+		return code.Between(200, 299)
+			? Ok(json)
+			: Problem(json);
 	}
 
 	[HttpPatch, Route("register"), RequireAuth(AuthType.RUMBLE_KEYS)]
