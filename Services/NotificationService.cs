@@ -32,15 +32,16 @@ public class NotificationService : QueueService<NotificationService.Data>
 
     protected override void ProcessTask(Data data)
     {
-        Log.Local(Owner.Will, $"Sending an update out to {data.Url}");
-        _apiService
-            .Request(PlatformEnvironment.Url(data.Url + "/refresh"))
-            .OnFailure(response =>
-            {
-                Log.Local(Owner.Will, $"Couldn't refresh dynamic config: {response.RequestUrl}.", emphasis: Log.LogType.WARN);
-            })
-            .AddAuthorization(AdminToken)
-            .Patch();
+        // TODO: Replace this intended functionality with MINQ
+        // Log.Local(Owner.Will, $"Sending an update out to {data.Url}");
+        // _apiService
+        //     .Request(PlatformEnvironment.Url(data.Url + "/refresh"))
+        //     .OnFailure(response =>
+        //     {
+        //         Log.Local(Owner.Will, $"Couldn't refresh dynamic config: {response.RequestUrl}.", emphasis: Log.LogType.WARN);
+        //     })
+        //     .AddAuthorization(AdminToken)
+        //     .Patch();
     }
 
     public void QueueNotifications()
