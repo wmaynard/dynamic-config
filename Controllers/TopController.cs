@@ -27,35 +27,50 @@ public class TopController : PlatformController
 	private readonly SectionService _sectionService;
 #pragma warning restore
 	
+	[HttpPatch, Route("diff"), NoAuth]
+	public ActionResult ShowDiff()
+	{
+		EnforceSecretUsed();
+		
+		string[] urls = Optional<string[]>("environments") ?? Array.Empty<string>();
+
+		if (!urls.Any())
+			return Ok(new RumbleJson
+			{
+				{ "sections", _sectionService.List() }
+			});
+
+		Dictionary<string, Section[]> environments = new Dictionary<string, Section[]>();
+		
+		foreach (string url in urls)
+			_apiService
+				.Request(PlatformEnvironment.Url(url, "config/diff"))
+				.SetPayload(new RumbleJson
+				{
+					{ KEY_SECRET, SECRET },
+					{ "environments", Array.Empty<string>() }
+				})
+				.OnSuccess(response =>
+				{
+					environments[url] = response.Require<Section[]>("sections");
+				})
+				.OnFailure(response => { })
+				.Patch();
+		
+		
+
+		return Ok();
+	}
 	
 	[HttpPost, Route("import"), NoAuth]
 	public ActionResult MergeEnvironment()
 	{
-		string secret = Require<string>(KEY_SECRET);
+		EnforceSecretUsed();
+		
 		Section[] fromRequest = Require<Section[]>("sections");
 		int deployment = Require<int>("deployment");
-		
-		if (secret != SECRET)
-			throw new PlatformException("Unauthorized.");
-		
 		int sections = 0;
 		int values = 0;
-		// string[] ids = _sectionService.GetAllIds();
-		
-		
-		// _sectionService.DeleteAllExcept(ids.Last());
-		//
-		// foreach (string id in ids)
-		// {
-		// 	try
-		// 	{
-		// 		Section foo = _sectionService.FindOne(section => section.Id == id);
-		// 	}
-		// 	catch (FormatException e)
-		// 	{
-		// 		Log.Local(Owner.Will, $"ID {id} is borked.", emphasis: Log.LogType.ERROR);
-		// 	}
-		// }
 		
 		Section[] all = _sectionService.List().ToArray();
 		foreach (Section incoming in fromRequest.Where(req => req != null))
@@ -180,4 +195,10 @@ public class TopController : PlatformController
 		{ "ProjectDC2", DynamicConfig.ProjectValues },
 		{ "GlobalDC2", DynamicConfig.GlobalValues }
 	};
+
+	private void EnforceSecretUsed()
+	{
+		if (Require<string>(KEY_SECRET) != SECRET)
+			throw new PlatformException("Unauthorized.");
+	}
 }
