@@ -32,17 +32,21 @@ public class TopController : PlatformController
 	{
 		EnforceSecretUsed();
 		
-		string[] urls = Optional<string[]>("environments") ?? Array.Empty<string>();
+		List<string> urls = Optional<List<string>>("environments") ?? new List<string>();
+
+		Section[] locals = _sectionService.List().ToArray();
 
 		if (!urls.Any())
 			return Ok(new RumbleJson
 			{
-				{ "sections", _sectionService.List() }
+				{ "sections", locals }
 			});
 
-		Dictionary<string, Section[]> environments = new Dictionary<string, Section[]>();
-		
-		foreach (string url in urls)
+		string localEnvironment = PlatformEnvironment.ClusterUrl + " (current)";
+
+		List<Tuple<string, string, string>> list = Section.Flatten(localEnvironment, locals);
+
+		foreach (string url in urls.Distinct())
 			_apiService
 				.Request(PlatformEnvironment.Url(url, "config/diff"))
 				.SetPayload(new RumbleJson
@@ -52,14 +56,44 @@ public class TopController : PlatformController
 				})
 				.OnSuccess(response =>
 				{
-					environments[url] = response.Require<Section[]>("sections");
+					list.AddRange(Section.Flatten(url, response.Require<Section[]>("sections")));
 				})
 				.OnFailure(response => { })
 				.Patch();
 		
-		
+		urls.Add(localEnvironment);
+		list = list.OrderBy(tuple => tuple.Item2).ToList();
+		string[] allKeys = list.Select(tuple => tuple.Item2).Distinct().ToArray();
 
-		return Ok();
+
+		foreach (string key in allKeys)
+		{
+			string[] missing = urls
+				.Except(list
+					.Where(tuple => tuple.Item2 == key)
+					.Select(tuple => tuple.Item1)
+				)
+				.ToArray();
+			bool uniform = list
+				.Where(tuple => tuple.Item2 == key)
+				.Select(tuple => tuple.Item3)
+				.Distinct()
+				.Count() == 1;
+
+			if (missing.Any())
+				list.AddRange(missing.Select(str => new Tuple<string, string, string>(
+					item1: str,
+					item2: key,
+					item3: "THIS VALUE IS MISSING."
+				)));
+			else if (uniform)
+				list.RemoveAll(tuple => tuple.Item2 == key);
+		}
+
+		return Ok(new RumbleJson
+		{
+			{ "diff", Section.FromTuples(list).Where(diff => diff.Key.StartsWith("receipt-service")) }
+		});
 	}
 	
 	[HttpPost, Route("import"), NoAuth]
