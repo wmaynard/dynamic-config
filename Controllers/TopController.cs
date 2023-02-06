@@ -27,12 +27,19 @@ public class TopController : PlatformController
 	private readonly SectionService _sectionService;
 #pragma warning restore
 	
+	/// <summary>
+	/// Calculates a diff between other DC environments.
+	/// As Platform has no knowledge of other valid URLs, the environments to compare must be passed in.  Any number
+	/// of environments are supported.
+	/// </summary>
+	/// <returns></returns>
 	[HttpPatch, Route("diff"), NoAuth]
 	public ActionResult ShowDiff()
 	{
 		EnforceSecretUsed();
 		
-		List<string> urls = Optional<List<string>>("environments") ?? new List<string>();
+		string[] urls = Optional<string[]>("environments") ?? Array.Empty<string>();
+		string filter = Optional<string>("filter");
 
 		Section[] locals = _sectionService.List().ToArray();
 
@@ -42,10 +49,12 @@ public class TopController : PlatformController
 				{ "sections", locals }
 			});
 
-		string localEnvironment = PlatformEnvironment.ClusterUrl + " (current)";
+		Dictionary<string, Section[]> dict = new Dictionary<string, Section[]>
+		{
+			{ PlatformEnvironment.ClusterUrl, locals }
+		};
 
-		List<Tuple<string, string, string>> list = Section.Flatten(localEnvironment, locals);
-
+		List<string> warnings = new List<string>();
 		foreach (string url in urls.Distinct())
 			_apiService
 				.Request(PlatformEnvironment.Url(url, "config/diff"))
@@ -54,45 +63,14 @@ public class TopController : PlatformController
 					{ KEY_SECRET, SECRET },
 					{ "environments", Array.Empty<string>() }
 				})
-				.OnSuccess(response =>
-				{
-					list.AddRange(Section.Flatten(url, response.Require<Section[]>("sections")));
-				})
-				.OnFailure(response => { })
+				.OnSuccess(response => dict[url] = response.Require<Section[]>("sections"))
+				.OnFailure(response => warnings.Add($"Unable to retrieve config at '{url}'."))
 				.Patch();
-		
-		urls.Add(localEnvironment);
-		list = list.OrderBy(tuple => tuple.Item2).ToList();
-		string[] allKeys = list.Select(tuple => tuple.Item2).Distinct().ToArray();
-
-
-		foreach (string key in allKeys)
-		{
-			string[] missing = urls
-				.Except(list
-					.Where(tuple => tuple.Item2 == key)
-					.Select(tuple => tuple.Item1)
-				)
-				.ToArray();
-			bool uniform = list
-				.Where(tuple => tuple.Item2 == key)
-				.Select(tuple => tuple.Item3)
-				.Distinct()
-				.Count() == 1;
-
-			if (missing.Any())
-				list.AddRange(missing.Select(str => new Tuple<string, string, string>(
-					item1: str,
-					item2: key,
-					item3: "THIS VALUE IS MISSING."
-				)));
-			else if (uniform)
-				list.RemoveAll(tuple => tuple.Item2 == key);
-		}
 
 		return Ok(new RumbleJson
 		{
-			{ "diff", Section.FromTuples(list).Where(diff => diff.Key.StartsWith("receipt-service")) }
+			{ "diff", Section.GetDiff(dict, filter) },
+			{ "warnings", warnings }
 		});
 	}
 	
