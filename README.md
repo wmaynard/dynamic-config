@@ -303,6 +303,96 @@ foreach (Section section in _dc2Service.GetAdminData())
 
 TODO: Provide information on the service registration data
 
+## Viewing Diffs
+
+To better facilitate environment promotion and comparison, Dynamic Config now has the ability to compare environment values against each other.  This allows config maintainers to more easily see what is different and highlights missing keys that might have been simple oversights.
+
+Particularly when keys are missing in other environments, maintainers are encouraged to either delete the keys if they're no longer necessary or add the missing keys - even if it means an empty value and a comment explaining it.
+
+To view the diffs, make a call with an admin token to:
+
+```
+PATCH /config/diff
+
+{
+    // Optional; if specified, you will only see keys from the specified service.
+    "filter": "player-service", 
+
+    "environments": [
+        "https://dev.nonprod.tower.cdrentertainment.com/",
+        ...
+    ]
+}
+```
+
+`filter` is an optional value.  Use your service name, as specified by the `Audience` enum (or what the keys start with); e.g. `player-service`.  However, this is mostly for Postman use to narrow down data; once implemented on Portal, the site can filter data on its own.
+
+`environments` can be any number of urls to compare with.  An invalid URL will _not_ cause the endpoint to return an error, but rather list the failed requests in a `warnings` array in the response.
+
+#### Sample response:
+```
+{
+    "diff": [
+        {
+            "key": "player-service.confirmationFailurePage",
+            "data": [
+                {
+                    "environment": "https://dev.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-a.eng.towersandtitans.com/email/failure/{reason}"
+                },
+                {
+                    "environment": "https://stage-a.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-a.eng.towersandtitans.com/email/failure/{reason}"
+                },
+                {
+                    "environment": "https://stage-b.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-b.eng.towersandtitans.com/email/failure/{reason}"
+                }
+            ]
+        },
+        {
+            "key": "player-service.confirmationSuccessPage",
+            "data": [
+                {
+                    "environment": "https://dev.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-a.eng.towersandtitans.com/email/success"
+                },
+                {
+                    "environment": "https://stage-a.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-a.eng.towersandtitans.com/email/success"
+                },
+                {
+                    "environment": "https://stage-b.nonprod.tower.cdrentertainment.com/",
+                    "value": "https://stage-b.eng.towersandtitans.com/email/success"
+                }
+            ]
+        },
+        {
+            "key": "player-service.delayWelcomeEmail",
+            "data": [
+                {
+                    "environment": "https://dev.nonprod.tower.cdrentertainment.com/",
+                    "value": "86400"
+                },
+                {
+                    "environment": "https://stage-a.nonprod.tower.cdrentertainment.com/",
+                    "value": "86400"
+                },
+                {
+                    "environment": "https://stage-b.nonprod.tower.cdrentertainment.com/",
+                    "value": "300"
+                }
+            ]
+        }
+    ],
+    "warnings": [
+        "Unable to retrieve config at 'https://platform-wrong.prod.tower.rumblegames.com/'."
+    ]
+}
+```
+
+As a sidenote, while this endpoint does require an admin token, there's a reason it's not in the AdminController: the same endpoint is used by the service to collect the config from each environment.  Since an admin token in one environment is not valid in another, Dynamic Config instead authenticates the request with a secret shared across all instances of the service.
+
 ## Future Updates, Optimizations, and Nice-to-Haves
 
 * Right now, updating a value can take a very long time, as the registered services have to individually be notified before the endpoint returns.  A new microservice should be created which will notify all registered services on a background thread instead.
