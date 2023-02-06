@@ -36,18 +36,22 @@ public class TopController : PlatformController
 	[HttpPatch, Route("diff"), NoAuth]
 	public ActionResult ShowDiff()
 	{
-		EnforceSecretUsed();
-		
 		string[] urls = Optional<string[]>("environments") ?? Array.Empty<string>();
 		string filter = Optional<string>("filter");
 
 		Section[] locals = _sectionService.List().ToArray();
 
 		if (!urls.Any())
+		{
+			EnforceSecretUsed();
 			return Ok(new RumbleJson
 			{
 				{ "sections", locals }
 			});
+		}
+
+		if (Token is not { IsAdmin: true })
+			throw new PlatformException("Admin token required.");
 
 		Dictionary<string, Section[]> dict = new Dictionary<string, Section[]>
 		{
