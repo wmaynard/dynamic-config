@@ -393,6 +393,8 @@ PATCH /config/diff
 
 As a sidenote, while this endpoint does require an admin token, there's a reason it's not in the AdminController: the same endpoint is used by the service to collect the config from each environment.  Since an admin token in one environment is not valid in another, Dynamic Config instead authenticates the request with a secret shared across all instances of the service.
 
+**Important Note:** Services' assigned admin tokens are NOT returned in the diff.  This is done for security; if your service has a problem with admin token usage, check that it wasn't imported or otherwise invalid (paste it into jwt.io to see contents).  Services using the platform-common startup will automatically generate their tokens when they successfully register with DynamicConfig; so in many cases you can delete an imported admin token, redeploy the service, and the admin token will then be valid.
+
 ## Future Updates, Optimizations, and Nice-to-Haves
 
 * Right now, updating a value can take a very long time, as the registered services have to individually be notified before the endpoint returns.  A new microservice should be created which will notify all registered services on a background thread instead.
