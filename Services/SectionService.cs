@@ -127,14 +127,14 @@ public class SectionService : PlatformMongoService<Section>
 		return true;
 	}
 
-	public string[] GetUpdateListeners() => _collection
-		.Find(filter: settings => true)
-		.Project(Builders<Section>.Projection.Expression(settings => settings.Services))
-		.ToList()
-		.SelectMany(list => list)
-		.Select(service => service.RootIngress) // TODO: This needs to be updated with the container url
-		.Where(value => !string.IsNullOrWhiteSpace(value))
-		.ToArray();
+	// public string[] GetUpdateListeners() => _collection
+	// 	.Find(filter: settings => true)
+	// 	.Project(Builders<Section>.Projection.Expression(settings => settings.Services))
+	// 	.ToList()
+	// 	.SelectMany(list => list)
+	// 	.Select(service => service.RootIngress) // TODO: This needs to be updated with the container url
+	// 	.Where(value => !string.IsNullOrWhiteSpace(value))
+	// 	.ToArray();
 
 	public string GenerateAdminToken(string serviceName) => PlatformEnvironment.IsLocal
 		? "(local token generation unavailable)"

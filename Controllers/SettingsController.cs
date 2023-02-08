@@ -98,7 +98,7 @@ public class SettingsController : PlatformController
 
 		_sectionService.Update(dynamicConfigSection);
 
-		string[] urls = _sectionService.GetUpdateListeners();
+		// string[] urls = _sectionService.GetUpdateListeners();
 		string adminToken = DynamicConfig.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DynamicConfig accessor properties for admin token
 		
 		_notificationService.QueueNotifications();

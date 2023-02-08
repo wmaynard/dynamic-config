@@ -46,14 +46,14 @@ public class NotificationService : QueueService<NotificationService.Data>
 
     public void QueueNotifications()
     {
-        string[] urls = _sectionService.GetUpdateListeners();
-        
-        Log.Local(Owner.Will, $"Enqueueing {urls.Length} notifications");
-        foreach (string url in urls)
-            CreateTask(new Data
-            {
-                Url = url
-            });
+        // string[] urls = _sectionService.GetUpdateListeners();
+        //
+        // Log.Local(Owner.Will, $"Enqueueing {urls.Length} notifications");
+        // foreach (string url in urls)
+        //     CreateTask(new Data
+        //     {
+        //         Url = url
+        //     });
     }
     
     public class Data : PlatformCollectionDocument
