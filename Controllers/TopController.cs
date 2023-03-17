@@ -23,12 +23,6 @@ public class TopController : PlatformController
   private readonly ApiService     _apiService;
   private readonly SectionService _sectionService;
 #pragma warning restore
-	protected override RumbleJson AdditionalHealthData => new RumbleJson
-	{
-		{ "AllDC2", DynamicConfig.AllValues },
-		{ "ProjectDC2", DynamicConfig.ProjectValues },
-		{ "GlobalDC2", DynamicConfig.GlobalValues }
-	};
 
   /// <summary>
   /// Calculates a diff between other DC environments.
