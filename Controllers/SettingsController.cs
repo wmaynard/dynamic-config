@@ -18,141 +18,145 @@ namespace Rumble.Platform.Config.Controllers;
 public class SettingsController : PlatformController
 {
 #pragma warning disable
-	private readonly SectionService _sectionService;
-	private readonly NotificationService _notificationService;
+  private readonly SectionService      _sectionService;
+  private readonly NotificationService _notificationService;
 #pragma warning restore
 
-	[HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
-	public ActionResult GetPortalData()
-	{
-		return Ok(new RumbleJson
-		{
-			{ DynamicConfig.API_KEY_SECTIONS, _sectionService.List() }
-		});
-	}
-	
-	[HttpGet, RequireAuth(AuthType.RUMBLE_KEYS), HealthMonitor(weight: 1)]
-	public ActionResult Get()
-	{
-		string name = Optional<string>("name");
+  [HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
+  public ActionResult GetPortalData()
+  {
+    return Ok(new RumbleJson
+              {
+                {DynamicConfig.API_KEY_SECTIONS, _sectionService.List()}
+              });
+  }
 
-		DynamicConfig.DC2ClientInformation info = Optional<DynamicConfig.DC2ClientInformation>("client");
-		
-		RumbleJson output = new RumbleJson();
+  [HttpGet, RequireAuth(AuthType.RUMBLE_KEYS), HealthMonitor(weight: 1)]
+  public ActionResult Get()
+  {
+    string name = Optional<string>("name");
 
-		Section[] settings = name == null
-			? _sectionService.List().ToArray()
-			: new[] { _sectionService.FindByName(name) };
+    DynamicConfig.DC2ClientInformation info = Optional<DynamicConfig.DC2ClientInformation>("client");
 
-		foreach (Section s in settings)
-		{
-			output[s.Name] = s.ClientData;
-			
-			if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name == Audience.GameClient.GetDisplayName())
-				continue;
-		
-			string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);
-			
-			s.Data[Section.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
-			_sectionService.Update(s);
-		}
+    RumbleJson output = new RumbleJson();
 
-		if (info != null)
-			_sectionService.LogActivity(info);
+    Section[] settings = name == null
+                           ? _sectionService.List().ToArray()
+                           : new[] {_sectionService.FindByName(name)};
 
-		return Ok(output);
-	}
+    foreach (Section s in settings)
+    {
+      output[s.Name] = s.ClientData;
 
-	[HttpPost, Route("new"), RequireAuth(AuthType.RUMBLE_KEYS)]
-	public ActionResult Create()
-	{
-		string name = Require<string>("name");
-		string friendlyName = Require<string>("friendlyName");
+      if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name == Audience.GameClient.GetDisplayName())
+        continue;
 
-		if (_sectionService.Exists(name))
-			return Ok("Section already exists", ErrorCode.Unnecessary);
-			// throw new PlatformException("Project already exists.", code: ErrorCode.Unnecessary);
+      string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);
 
-		_sectionService.Create(new Section(name, friendlyName));
-		Log.Info(Owner.Default, "New dynamic-config project created", data: new
-		{
-			Name = name
-		});
-		
-		return Ok();
-	}
+      s.Data[Section.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
+      _sectionService.Update(s);
+    }
 
-	[HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN), HealthMonitor(weight: 5)]
-	public async Task<ActionResult> Update()
-	{
-		string name = Optional<string>("name");
-		string key = Require<string>("key");
-		string value = Require<string>("value");
-		string comment = Require<string>("comment");
+    if (info != null)
+      _sectionService.LogActivity(info);
 
-		if (value is JsonElement)
-			throw new PlatformException("'value' cannot be a JSON object.  It must be a primitive type.", code: ErrorCode.InvalidDataType);
-		
-		Section dynamicConfigSection = _sectionService.FindByName(name);
-		dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
+    return Ok(output);
+  }
 
-		_sectionService.Update(dynamicConfigSection);
+  [HttpPost, Route("new"), RequireAuth(AuthType.RUMBLE_KEYS)]
+  public ActionResult Create()
+  {
+    string name = Require<string>("name");
+    string friendlyName = Require<string>("friendlyName");
 
-		// string[] urls = _sectionService.GetUpdateListeners();
-		string adminToken = DynamicConfig.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DynamicConfig accessor properties for admin token
-		
-		_notificationService.QueueNotifications();
-		// Try to get all subscribers to refresh their variables
-		// foreach (string url in urls)
-		// 	await _apiService
-		// 		.Request(PlatformEnvironment.Url(url + "/refresh"))
-		// 		.OnFailure((_, response) =>
-		// 		{
-		// 			Log.Info(Owner.Will, $"Couldn't refresh dynamic config.", data: new
-		// 			{
-		// 				Url = response.RequestUrl
-		// 			});
-		// 			// TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this if other services are active, though.
-		// 		})
-		// 		.AddAuthorization(adminToken)
-		// 		.PatchAsync();
-		
-		// TODO: remove conditional after testing
-		return Ok();
-	}
+    if (_sectionService.Exists(name))
+      return Ok("Section already exists", ErrorCode.Unnecessary);
+    // throw new PlatformException("Project already exists.", code: ErrorCode.Unnecessary);
 
-	[HttpDelete, Route("value"), RequireAuth(AuthType.ADMIN_TOKEN)]
-	public ActionResult DeleteKey()
-	{
-		string name = Require<string>("name");
-		string key = Require<string>("key");
+    _sectionService.Create(new Section(name, friendlyName));
+    Log.Info(Owner.Default, "New dynamic-config project created", data: new
+                                                                        {
+                                                                          Name = name
+                                                                        });
 
-		string message = _sectionService.RemoveValue(name, key)
-			? $"'{name}.{key}' removed."
-			: "No records were modified.";
+    return Ok();
+  }
 
-		return Ok(new
-		{
-			Message = message
-		});
-	}
+  [HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN), HealthMonitor(weight: 5)]
+  public async Task<ActionResult> Update()
+  {
+    string name = Optional<string>("name");
+    string key = Require<string>("key");
+    string value = Require<string>("value");
+    string comment = Require<string>("comment");
 
-	[HttpGet, Route("validate"), RequireAuth(AuthType.RUMBLE_KEYS)]
-	public ActionResult ValidateSections()
-	{
-		RumbleJson errors = new RumbleJson();
-		foreach (string id in _sectionService.GetAllIds())
-			try
-			{
-				_sectionService.Get(id);
-			}
-			catch (Exception e)
-			{
-				errors[id] = e.Message;
-			}
+    if (value is JsonElement)
+      throw new PlatformException("'value' cannot be a JSON object.  It must be a primitive type.",
+                                  code: ErrorCode.InvalidDataType);
 
-		return errors.Any()
-			? Problem(errors)
-			: Ok();
-	}
+    Section dynamicConfigSection = _sectionService.FindByName(name);
+    dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
+
+    _sectionService.Update(dynamicConfigSection);
+
+    // string[] urls = _sectionService.GetUpdateListeners();
+    string adminToken =
+      DynamicConfig.ProjectValues
+                   .Optional<string>(Section
+                                       .FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DynamicConfig accessor properties for admin token
+
+    _notificationService.QueueNotifications();
+    // Try to get all subscribers to refresh their variables
+    // foreach (string url in urls)
+    //  await _apiService
+    //    .Request(PlatformEnvironment.Url(url + "/refresh"))
+    //    .OnFailure((_, response) =>
+    //    {
+    //      Log.Info(Owner.Will, $"Couldn't refresh dynamic config.", data: new
+    //      {
+    //        Url = response.RequestUrl
+    //      });
+    //      // TODO: Deregister the service after enough failures.  This is likely a sign the service is no longer active.  Only do this if other services are active, though.
+    //    })
+    //    .AddAuthorization(adminToken)
+    //    .PatchAsync();
+
+    // TODO: remove conditional after testing
+    return Ok();
+  }
+
+  [HttpDelete, Route("value"), RequireAuth(AuthType.ADMIN_TOKEN)]
+  public ActionResult DeleteKey()
+  {
+    string name = Require<string>("name");
+    string key = Require<string>("key");
+
+    string message = _sectionService.RemoveValue(name, key)
+                       ? $"'{name}.{key}' removed."
+                       : "No records were modified.";
+
+    return Ok(new
+              {
+                Message = message
+              });
+  }
+
+  [HttpGet, Route("validate"), RequireAuth(AuthType.RUMBLE_KEYS)]
+  public ActionResult ValidateSections()
+  {
+    RumbleJson errors = new RumbleJson();
+    foreach (string id in _sectionService.GetAllIds())
+      try
+      {
+        _sectionService.Get(id);
+      }
+      catch (Exception e)
+      {
+        errors[id] = e.Message;
+      }
+
+    return errors.Any()
+             ? Problem(errors)
+             : Ok();
+  }
 }
