@@ -32,6 +32,7 @@ stages:
   - dev
   - staging
   - production
+  - production-2
   - performance
   - cleanup
 
