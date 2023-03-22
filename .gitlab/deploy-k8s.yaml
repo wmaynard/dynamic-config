@@ -38,6 +38,7 @@ dev:
 stage-a:
   extends: .auto-deploy
   stage: staging
+  needs: ["dev"]
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "dynamic-config-service-15-stage-a"
@@ -49,6 +50,7 @@ stage-a:
 
 stage-b:
   extends: .auto-deploy
+  needs: ["dev"]
   stage: staging
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
@@ -73,6 +75,7 @@ stage-b:
 
 TT-production-a1:
   extends: .auto-deploy
+  needs: ["stage-a"]
   stage: production
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a1-platform-services"
@@ -86,6 +89,7 @@ TT-production-a1:
 
 TT-production-a1-apse1:
   extends: .auto-deploy
+  needs: ["stage-a"]
   stage: production
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a1-apse1-platform-services"
@@ -100,6 +104,7 @@ TT-production-a1-apse1:
 
 TT-production-a2:
   extends: .auto-deploy
+  needs: ["stage-a"]
   stage: production-2
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a2-platform-services"
@@ -113,6 +118,7 @@ TT-production-a2:
 
 TT-production-a2-apse1:
   extends: .auto-deploy
+  needs: ["stage-a"]
   stage: production-2
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a2-apse1-platform-services"
