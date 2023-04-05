@@ -48,6 +48,21 @@ stage-a:
     name: stage-a
     url: https://stage-a.nonprod.tower.cdrentertainment.com/
 
+
+stage-a-apse1:
+  extends: .auto-deploy
+  stage: staging
+  needs: ["dev"]
+  variables:
+    kube_ingress_base_domain: nonprod.tower.cdrentertainment.com
+    kube_names   kube_namespace: "dynamic-config-service-15-stage-a"
+    kube_context: "platform-services/platform-services-agent:nonprod-apse1"
+  tags:
+    - nonprod-apse1
+  environment:
+    name: stage-a
+    url: https://stage-a.nonprod.tower.cdrentertainment.com/
+
 stage-b:
   extends: .auto-deploy
   needs: ["dev"]
