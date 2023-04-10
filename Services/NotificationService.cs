@@ -21,14 +21,9 @@ public class NotificationService : QueueService<NotificationService.Data>
         _sectionService = sectionService;
     }
 
-    protected override void OnTasksCompleted(Data[] data)
-    {
-    }
+    protected override void OnTasksCompleted(Data[] data) { }
 
-    protected override void PrimaryNodeWork()
-    {
-        
-    }
+    protected override void PrimaryNodeWork() { }
 
     protected override void ProcessTask(Data data)
     {
