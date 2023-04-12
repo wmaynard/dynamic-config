@@ -54,8 +54,8 @@ public class SettingsController : PlatformController
             _sectionService.Update(s);
         }
 
-        if (info != null)
-            _sectionService.LogActivity(info);
+        // if (info != null)
+        //     _sectionService.LogActivity(info);
 
         return Ok(output);
     }

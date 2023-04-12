@@ -14,6 +14,6 @@ public class DeregisterService : PlatformTimerService
     protected override void OnElapsed()
     {
         Log.Local(Owner.Will, "Removing old services");
-        _sectionService.RemoveInactiveServices(thresholdSeconds: 5);
+        // _sectionService.RemoveInactiveServices(thresholdSeconds: 5);
     }
 }

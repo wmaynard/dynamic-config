@@ -170,8 +170,8 @@ public class TopController : PlatformController
             ? _sectionService.FindByName(name) ?? _sectionService.Create(new Section(name, friendlyName))
             : _sectionService.Create(new Section(name, friendlyName));
 
-        dynamicConfigSection.Services ??= new List<RegisteredService>();
-        dynamicConfigSection.Services.Add(service);
+        // dynamicConfigSection.Services ??= new List<RegisteredService>();
+        // dynamicConfigSection.Services.Add(service);
         _sectionService.Update(dynamicConfigSection);
 
         // TODO: Ping other versions of service to see if they're still up; if not, remove them.

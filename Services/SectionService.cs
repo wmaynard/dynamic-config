@@ -26,33 +26,33 @@ public class SectionService : PlatformMongoService<Section>
         _apiService = apiService;
     }
 
-    public void RemoveInactiveServices(long thresholdSeconds)
-    {
-        string[] ids = _collection
-            .Find(filter: settings => true)
-            .Project(Builders<Section>.Projection.Expression(settings => settings.ActiveClients))
-            .ToList()
-            .Where(list => list != null)
-            .SelectMany(list => list)
-            .Where(info => Timestamp.UnixTime - info.LastActivity > thresholdSeconds)
-            .Select(info => info.ClientID)
-            .ToArray();
-
-        Section[] all = Find(settings => true);
-
-        foreach (Section setting in all)
-        {
-            if (setting.ActiveClients == null)
-                continue;
-
-            string[] union = setting.ActiveClients.Select(client => client.ClientID).Union(ids).ToArray();
-            foreach (string id in union)
-                setting.Services?.RemoveAll(service => service.DynamicConfigClientId == id);
-            setting.ActiveClients?.RemoveAll(client => Timestamp.UnixTime - client.LastActivity > thresholdSeconds);
-
-            Update(setting);
-        }
-    }
+    // public void RemoveInactiveServices(long thresholdSeconds)
+    // {
+    //     string[] ids = _collection
+    //         .Find(filter: settings => true)
+    //         .Project(Builders<Section>.Projection.Expression(settings => settings.ActiveClients))
+    //         .ToList()
+    //         .Where(list => list != null)
+    //         .SelectMany(list => list)
+    //         .Where(info => Timestamp.UnixTime - info.LastActivity > thresholdSeconds)
+    //         .Select(info => info.ClientID)
+    //         .ToArray();
+    //
+    //     Section[] all = Find(settings => true);
+    //
+    //     foreach (Section setting in all)
+    //     {
+    //         if (setting.ActiveClients == null)
+    //             continue;
+    //
+    //         string[] union = setting.ActiveClients.Select(client => client.ClientID).Union(ids).ToArray();
+    //         // foreach (string id in union)
+    //         //     setting.Services?.RemoveAll(service => service.DynamicConfigClientId == id);
+    //         setting.ActiveClients?.RemoveAll(client => Timestamp.UnixTime - client.LastActivity > thresholdSeconds);
+    //
+    //         Update(setting);
+    //     }
+    // }
 
     public void Validate()
     {
@@ -83,29 +83,28 @@ public class SectionService : PlatformMongoService<Section>
     public override IEnumerable<Section> List() => _collection.Find(_ => true)
         .Project(Builders<Section>.Projection.Expression(section => new Section(section.Id)
         {
-            ActiveClients = new List<DynamicConfig.DC2ClientInformation>(), 
+            // ActiveClients = new List<DynamicConfig.DC2ClientInformation>(), 
             AdminToken = section.AdminToken, 
             Data = section.Data, 
             FriendlyName = section.FriendlyName, 
             Name = section.Name, 
-            Services = { }
+            // Services = { }
         }))
         .ToList()
         .ToArray();
 
-    public void LogActivity(DynamicConfig.DC2ClientInformation info)
-    {
-        Section dynamicConfigSection = FindByName(info.ServiceName);
-
-        info.LastActivity = Timestamp.UnixTime;
-
-        if (!dynamicConfigSection.ActiveClients.Any(client => client.ClientID == info.ClientID))
-            dynamicConfigSection.ActiveClients.Add(info);
-        else
-            dynamicConfigSection.ActiveClients.First(client => client.ClientID == info.ClientID).LastActivity =
-        info.LastActivity;
-        Update(dynamicConfigSection);
-    }
+    // public void LogActivity(DynamicConfig.DC2ClientInformation info)
+    // {
+    //     Section dynamicConfigSection = FindByName(info.ServiceName);
+    //
+    //     info.LastActivity = Timestamp.UnixTime;
+    //
+    //     if (!dynamicConfigSection.ActiveClients.Any(client => client.ClientID == info.ClientID))
+    //         dynamicConfigSection.ActiveClients.Add(info);
+    //     else
+    //         dynamicConfigSection.ActiveClients.First(client => client.ClientID == info.ClientID).LastActivity = info.LastActivity;
+    //     Update(dynamicConfigSection);
+    // }
 
     public Section FindByName(string name) => _collection
         .Find(filter: settings => settings.Name == name)
