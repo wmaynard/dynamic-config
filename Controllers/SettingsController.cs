@@ -85,7 +85,7 @@ public class SettingsController : PlatformController
         string name = Optional<string>("name");
         string key = Require<string>("key");
         string value = Require<string>("value");
-        string comment = Require<string>("comment");
+        string comment = Optional<string>("comment") ?? "";
 
         if (value is JsonElement)
             throw new PlatformException("'value' cannot be a JSON object.  It must be a primitive type.", code: ErrorCode.InvalidDataType);

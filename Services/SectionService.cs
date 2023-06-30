@@ -137,8 +137,8 @@ public class SectionService : PlatformMongoService<Section>
             .Url("/secured/token/generate"))
             .SetPayload(new RumbleJson
             {
-                {"aid", serviceName},
-                {"accountId", serviceName},
+                { "aid", serviceName },
+                { "accountId", serviceName },
                 { "screenname", $"{serviceName} ({PlatformEnvironment.Deployment})" },
                 { "discriminator", 10_000 },
                 { "origin", $"{PlatformEnvironment.Name} ({PlatformEnvironment.Deployment})" },
