@@ -79,16 +79,41 @@ public class SettingsController : PlatformController
         return Ok();
     }
 
+    [HttpPatch, Route("ensure"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    public ActionResult EnsureExists()
+    {
+        string name = Require<string>("name");
+        string key = Require<string>("key");
+        string value = Optional<string>("value") ?? "";
+        
+        Section dynamicConfigSection = _sectionService.FindByName(name);
+        if (dynamicConfigSection.Data.ContainsKey(key))
+            return Ok();
+
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(name))
+            throw new PlatformException("Key or name not provided.");
+        
+        dynamicConfigSection.Data[key] = new SettingsValue(value, "(newly added; needs comment)");
+        _sectionService.Update(dynamicConfigSection);
+        
+        Log.Info(Owner.Will, "Created default value for DC variable.", data: new
+        {
+            Project = name,
+            Key = key,
+            DefaultValue = value,
+            Author = Token?.AccountId
+        });
+
+        return Ok();
+    }
+
     [HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN), HealthMonitor(weight: 5)]
-    public async Task<ActionResult> Update()
+    public ActionResult Update()
     {
         string name = Optional<string>("name");
         string key = Require<string>("key");
         string value = Require<string>("value");
         string comment = Optional<string>("comment") ?? "";
-
-        if (value is JsonElement)
-            throw new PlatformException("'value' cannot be a JSON object.  It must be a primitive type.", code: ErrorCode.InvalidDataType);
 
         Section dynamicConfigSection = _sectionService.FindByName(name);
         dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
