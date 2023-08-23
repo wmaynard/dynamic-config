@@ -120,7 +120,7 @@ build_image:
   stage: build
   allow_failure: false
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: "$KANIKO_IMAGE"
     entrypoint: [""]
   script:
     - echo "$CURRENTVERSION"
