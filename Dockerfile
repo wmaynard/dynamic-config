@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /app
-COPY bin/Release/net6.0/ .
+COPY bin/Release/net7.0/ .
 ENTRYPOINT ["dotnet", "dynamic-config.dll"]
