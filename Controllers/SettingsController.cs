@@ -115,12 +115,13 @@ public class SettingsController : PlatformController
         string value = Require<string>("value");
         string comment = Optional<string>("comment") ?? "";
 
+        if (string.IsNullOrWhiteSpace(key))
+            throw new PlatformException("Unable to update dynamic config value; invalid key.");
+
         Section dynamicConfigSection = _sectionService.FindByName(name);
         dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
 
         _sectionService.Update(dynamicConfigSection);
-
-        string adminToken = DynamicConfig.ProjectValues.Optional<string>(Section.FRIENDLY_KEY_ADMIN_TOKEN); // TODO: Make DynamicConfig accessor properties for admin token
 
         _notificationService.QueueNotifications();
         return Ok();
