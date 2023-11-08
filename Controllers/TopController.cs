@@ -159,7 +159,7 @@ public class TopController : PlatformController
         string name = Require<string>(PlatformEnvironment.KEY_COMPONENT);
         string friendlyName = Require<string>(PlatformEnvironment.KEY_REGISTRATION_NAME);
         RegisteredService service = Require<RegisteredService>("service");
-        service.LastUpdated = Timestamp.UnixTime;
+        service.LastUpdated = Timestamp.Now;
 
         if (string.IsNullOrWhiteSpace(name))
             throw new PlatformException($"{PlatformEnvironment.KEY_COMPONENT} not provided.");
