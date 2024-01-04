@@ -1,7 +1,7 @@
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 
-namespace Rumble.Config;
+namespace Rumble.Platform.Config;
 
 public class SectionMissingException : PlatformException
 {

@@ -1,10 +1,8 @@
 using RCL.Logging;
-using Rumble.Platform.Common;
 using Rumble.Platform.Common.Enums;
-using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
-namespace Rumble.Config;
+namespace Rumble.Platform.Config;
 
 public class Startup : PlatformStartup
 {

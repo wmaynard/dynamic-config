@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi.Extensions;
 using RCL.Logging;
+using Rumble.Platform.Config.Models;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
@@ -17,45 +19,44 @@ namespace Rumble.Platform.Config.Controllers;
 [Route("config/settings")]
 public class SettingsController : PlatformController
 {
-#pragma warning disable
-    private readonly SectionService      _sectionService;
-    private readonly NotificationService _notificationService;
+    public const string FRIENDLY_KEY_SCOPE = "scope";
+    public const string FRIENDLY_KEY_SCOPE_BACKCOMPAT = "name";
+    
+    #pragma warning disable
+    private readonly ScopeService _sections;
     #pragma warning restore
 
     [HttpGet, Route("all"), RequireAuth(AuthType.RUMBLE_KEYS)]
     public ActionResult GetPortalData() => Ok(new RumbleJson
     {
-        { DynamicConfig.API_KEY_SECTIONS, _sectionService.List() }
+        { DynamicConfig.API_KEY_SECTIONS, _sections.List() }
     });
 
     [HttpGet, RequireAuth(AuthType.RUMBLE_KEYS), HealthMonitor(weight: 1)]
     public ActionResult Get()
     {
-        string name = Optional<string>("name");
+        string name = GetScope(false);
 
-        DynamicConfig.DC2ClientInformation info = Optional<DynamicConfig.DC2ClientInformation>("client");
+        // DynamicConfig.DC2ClientInformation info = Optional<DynamicConfig.DC2ClientInformation>("client");
 
-        RumbleJson output = new RumbleJson();
+        RumbleJson output = new();
 
-        Section[] settings = name == null
-            ? _sectionService.List().ToArray()
-            : new[] { _sectionService.FindByName(name) };
+        Section[] settings = string.IsNullOrWhiteSpace(name)
+            ? _sections.List().ToArray()
+            : new[] { _sections.FindByName(name) };
 
         foreach (Section s in settings)
         {
+            // The game client can't have an admin token.  If other sections don't have one, generate it now.
+            if (!s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) && s.Name != Audience.GameClient.GetDisplayName())
+            {
+                string token = _sections.GenerateAdminToken(s.Name);
+                s.Data[Section.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
+                _sections.Update(s);
+            }
+            
             output[s.Name] = s.ClientData;
-
-            if (s.Data.ContainsKey(Section.FRIENDLY_KEY_ADMIN_TOKEN) || s.Name == Audience.GameClient.GetDisplayName())
-                continue;
-
-            string token = s.AdminToken ?? _sectionService.GenerateAdminToken(s.Name);
-
-            s.Data[Section.FRIENDLY_KEY_ADMIN_TOKEN] = new SettingsValue(token, "Auto-generated admin token");
-            _sectionService.Update(s);
         }
-
-        // if (info != null)
-        //     _sectionService.LogActivity(info);
 
         return Ok(output);
     }
@@ -63,14 +64,14 @@ public class SettingsController : PlatformController
     [HttpPost, Route("new"), RequireAuth(AuthType.RUMBLE_KEYS)]
     public ActionResult Create()
     {
-        string name = Require<string>("name");
+        string name = GetScope();
         string friendlyName = Require<string>("friendlyName");
 
-        if (_sectionService.Exists(name))
+        if (_sections.Exists(name))
             return Ok("Section already exists", ErrorCode.Unnecessary);
         // throw new PlatformException("Project already exists.", code: ErrorCode.Unnecessary);
 
-        _sectionService.Create(new Section(name, friendlyName));
+        _sections.Insert(new Section(name, friendlyName));
         Log.Info(Owner.Default, "New dynamic-config project created", data: new
         {
             Name = name
@@ -82,11 +83,11 @@ public class SettingsController : PlatformController
     [HttpPatch, Route("ensure"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ActionResult EnsureExists()
     {
-        string name = Require<string>("name");
+        string name = GetScope();
         string key = Require<string>("key");
         string value = Optional<string>("value") ?? "";
         
-        Section dynamicConfigSection = _sectionService.FindByName(name);
+        Section dynamicConfigSection = _sections.FindByName(name);
         if (dynamicConfigSection.Data.ContainsKey(key))
             return Ok();
 
@@ -94,7 +95,7 @@ public class SettingsController : PlatformController
             throw new PlatformException("Key or name not provided.");
         
         dynamicConfigSection.Data[key] = new SettingsValue(value, "(newly added; needs comment)");
-        _sectionService.Update(dynamicConfigSection);
+        _sections.Update(dynamicConfigSection);
         
         Log.Info(Owner.Will, "Created default value for DC variable.", data: new
         {
@@ -110,30 +111,47 @@ public class SettingsController : PlatformController
     [HttpPatch, Route("update"), RequireAuth(AuthType.ADMIN_TOKEN), HealthMonitor(weight: 5)]
     public ActionResult Update()
     {
-        string name = Optional<string>("name");
-        string key = Require<string>("key");
-        string value = Require<string>("value");
-        string comment = Optional<string>("comment") ?? "";
+        string scope = GetScope();
+        KeyValueComment[] updates = Require<KeyValueComment[]>("updates");
 
-        if (string.IsNullOrWhiteSpace(key))
-            throw new PlatformException("Unable to update dynamic config value; invalid key.");
+        if (!updates.Any())
+            throw new PlatformException("No updates provided and config cannot be changed");
+        
+        if (updates.Any(trio => string.IsNullOrWhiteSpace(trio.Key)))
+            throw new PlatformException("Unable to update dynamic config; at least one null or empty key was provided.");
 
-        Section dynamicConfigSection = _sectionService.FindByName(name);
-        dynamicConfigSection.Data[key] = new SettingsValue(value, comment);
+        if (updates.DistinctBy(trio => trio.Key).Count() < updates.Length)
+            throw new PlatformException("Unable to update dynamic config; at least one updated key was repeated.");
 
-        _sectionService.Update(dynamicConfigSection);
+        Section dynamicConfigSection = _sections.FindByName(scope);
 
-        _notificationService.QueueNotifications();
-        return Ok();
+        int unchanged = 0;
+        foreach (KeyValueComment trio in updates)
+        {
+            string value = trio.Value ?? "";
+            string comment = trio.Comment ?? "";
+            
+            SettingsValue v = dynamicConfigSection.Data[trio.Key];
+            if (v.Value == value && v.Comment == comment)
+                unchanged++;
+            else
+                dynamicConfigSection.Data[trio.Key] = new SettingsValue(value, comment);
+        }
+
+        if (updates.Length == unchanged)
+            throw new PlatformException("Update request had the same values as the database; no change was made.");
+
+        _sections.Update(dynamicConfigSection);
+        return Ok(dynamicConfigSection);
     }
 
     [HttpDelete, Route("value"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ActionResult DeleteKey()
     {
-        string name = Require<string>("name");
+        string name = GetScope();
         string key = Require<string>("key");
 
-        string message = _sectionService.RemoveValue(name, key)
+        string message = _sections.RemoveValue(name, key)
             ? $"'{name}.{key}' removed."
             : "No records were modified.";
 
@@ -142,23 +160,13 @@ public class SettingsController : PlatformController
             Message = message
         });
     }
-
-    [HttpGet, Route("validate"), RequireAuth(AuthType.RUMBLE_KEYS)]
-    public ActionResult ValidateSections()
+    
+    private string GetScope(bool required = true)
     {
-        RumbleJson errors = new RumbleJson();
-        foreach (string id in _sectionService.GetAllIds())
-            try
-            {
-                _sectionService.Get(id);
-            }
-            catch (Exception e)
-            {
-                errors[id] = e.Message;
-            }
+        string output = Optional<string>(FRIENDLY_KEY_SCOPE) ?? Optional<string>(FRIENDLY_KEY_SCOPE_BACKCOMPAT);
 
-        return errors.Any()
-            ? Problem(errors)
-            : Ok();
+        return required && string.IsNullOrWhiteSpace(output)
+            ? throw new PlatformException($"'{FRIENDLY_KEY_SCOPE}' or '{FRIENDLY_KEY_SCOPE_BACKCOMPAT}' not provided.")
+            : output;
     }
 }

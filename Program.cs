@@ -1,11 +1,11 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Rumble.Config;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Rumble.Platform.Config;
 
-namespace Rumble.Config;
+namespace Rumble.Platform.Config;
 
 public class Program
 {

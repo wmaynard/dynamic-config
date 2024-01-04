@@ -20,7 +20,7 @@ public class TopController : PlatformController
     
 #pragma warning disable
     private readonly ApiService     _apiService;
-    private readonly SectionService _sectionService;
+    private readonly ScopeService _scopes;
 #pragma warning restore
 
     /// <summary>
@@ -35,7 +35,7 @@ public class TopController : PlatformController
         string[] urls = Optional<string[]>("environments") ?? Array.Empty<string>();
         string filter = Optional<string>("filter");
 
-        Section[] locals = _sectionService.List().ToArray();
+        Section[] locals = _scopes.List().ToArray();
 
         if (!urls.Any())
         {
@@ -84,7 +84,7 @@ public class TopController : PlatformController
         int sections = 0;
         int values = 0;
 
-        Section[] all = _sectionService.List().ToArray();
+        Section[] all = _scopes.List().ToArray();
         foreach (Section incoming in fromRequest.Where(req => req != null))
         {
             Section local = all.FirstOrDefault(a => a.Name == incoming.Name);
@@ -95,7 +95,7 @@ public class TopController : PlatformController
                 foreach (KeyValuePair<string, SettingsValue> pair in incoming.Data)
                     pair.Value.Comment = $"[Imported from {deployment}] {pair.Value.Comment}";
 
-                _sectionService.Create(incoming);
+                _scopes.Insert(incoming);
                 sections++;
                 values += incoming.Data.Count;
 
@@ -122,7 +122,7 @@ public class TopController : PlatformController
                 continue;
 
             sections++;
-            _sectionService.Update(local);
+            _scopes.Update(local);
         }
 
         return Ok(new RumbleJson
@@ -143,7 +143,7 @@ public class TopController : PlatformController
             {
                 { KEY_SECRET, SECRET },
                 { "deployment", PlatformEnvironment.Deployment },
-                { "sections", _sectionService.List().Select(section => section.PrepareForExport()) }
+                { "sections", _scopes.List().Select(section => section.PrepareForExport()) }
             })
             .OnFailure(_ => Log.Local(Owner.Will, "Failed to merge dynamic config environments."))
             .Post(out RumbleJson json, out int code);
@@ -165,14 +165,12 @@ public class TopController : PlatformController
             throw new PlatformException($"{PlatformEnvironment.KEY_COMPONENT} not provided.");
         if (string.IsNullOrWhiteSpace(friendlyName))
             throw new PlatformException($"{PlatformEnvironment.KEY_REGISTRATION_NAME} not provided.");
-
-        Section dynamicConfigSection = _sectionService.Exists(name)
-            ? _sectionService.FindByName(name) ?? _sectionService.Create(new Section(name, friendlyName))
-            : _sectionService.Create(new Section(name, friendlyName));
+        
+        Section dynamicConfigSection = _scopes.UpsertByName(name, friendlyName);
 
         // dynamicConfigSection.Services ??= new List<RegisteredService>();
         // dynamicConfigSection.Services.Add(service);
-        _sectionService.Update(dynamicConfigSection);
+        _scopes.Update(dynamicConfigSection);
 
         // TODO: Ping other versions of service to see if they're still up; if not, remove them.
 
