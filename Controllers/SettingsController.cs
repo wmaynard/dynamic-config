@@ -112,7 +112,17 @@ public class SettingsController : PlatformController
     public ActionResult Update()
     {
         string scope = GetScope();
-        KeyValueComment[] updates = Require<KeyValueComment[]>("updates");
+
+        KeyValueComment backcompat = new()
+        {
+            Key = Optional<string>(KeyValueComment.FRIENDLY_KEY_KEY),
+            Value = Optional<string>(KeyValueComment.FRIENDLY_KEY_VALUE),
+            Comment = Optional<string>(KeyValueComment.FRIENDLY_KEY_COMMENT)
+        };
+        
+        KeyValueComment[] updates = !string.IsNullOrWhiteSpace(backcompat.Key)
+            ? new[] { backcompat }
+            : Require<KeyValueComment[]>("updates");
 
         if (!updates.Any())
             throw new PlatformException("No updates provided and config cannot be changed");
