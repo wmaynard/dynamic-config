@@ -123,26 +123,27 @@ public class SettingsController : PlatformController
         if (updates.DistinctBy(trio => trio.Key).Count() < updates.Length)
             throw new PlatformException("Unable to update dynamic config; at least one updated key was repeated.");
 
-        Section dynamicConfigSection = _sections.FindByName(scope);
+        Section section = _sections.FindByName(scope);
 
         int unchanged = 0;
         foreach (KeyValueComment trio in updates)
         {
             string value = trio.Value ?? "";
             string comment = trio.Comment ?? "";
-            
-            SettingsValue v = dynamicConfigSection.Data[trio.Key];
-            if (v.Value == value && v.Comment == comment)
-                unchanged++;
+
+            section.Data.TryGetValue(trio.Key, out SettingsValue db);
+
+            if (db == null || db.Value != value || db.Comment != comment)
+                section.Data[trio.Key] = new SettingsValue(value, comment);
             else
-                dynamicConfigSection.Data[trio.Key] = new SettingsValue(value, comment);
+                unchanged++;
         }
 
         if (updates.Length == unchanged)
             throw new PlatformException("Update request had the same values as the database; no change was made.");
 
-        _sections.Update(dynamicConfigSection);
-        return Ok(dynamicConfigSection);
+        _sections.Update(section);
+        return Ok(section);
     }
 
     [HttpDelete, Route("value"), RequireAuth(AuthType.ADMIN_TOKEN)]
