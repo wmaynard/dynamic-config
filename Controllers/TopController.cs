@@ -49,12 +49,12 @@ public class TopController : PlatformController
         if (Token is not { IsAdmin: true })
             throw new PlatformException("Admin token required.");
 
-        Dictionary<string, Section[]> dict = new Dictionary<string, Section[]>
+        Dictionary<string, Section[]> dict = new()
         {
             { PlatformEnvironment.ClusterUrl, locals }
         };
 
-        List<string> warnings = new List<string>();
+        List<string> warnings = new();
         foreach (string url in urls.Distinct())
             _apiService
                 .Request(PlatformEnvironment.Url(url, "config/diff"))
