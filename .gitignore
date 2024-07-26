@@ -1,0 +1,4 @@
+bin
+obj
+environment.json
+.DS_Store
